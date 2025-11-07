@@ -18,9 +18,12 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/college_community
-      SECRET_KEY: your-secret-key-change-this-in-production
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./app:/app/app
       - ./uploads:/app/uploads
