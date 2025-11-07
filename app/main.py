@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import engine
 from .models.models import Base
-from .routers import auth, users, posts, rewards, files, ai
+from .routers import auth, users, posts, rewards, files, ai, alerts
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -30,6 +30,7 @@ app.include_router(posts.router)
 app.include_router(rewards.router)
 app.include_router(files.router)
 app.include_router(ai.router)
+app.include_router(alerts.router)
 
 
 @app.get("/")

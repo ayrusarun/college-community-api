@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, case
 from typing import List
+from datetime import datetime
 
 from ..core.database import get_db
 from ..core.utils import time_ago
-from ..models.models import Post, User, PostType, IndexingTask
-from ..models.schemas import PostCreate, PostResponse, PostUpdate, PostMetadataUpdate
+from ..models.models import Post, User, PostType, IndexingTask, Alert
+from ..models.schemas import PostCreate, PostResponse, PostUpdate, PostMetadataUpdate, PostAlertCreate, AlertResponse
 from ..routers.auth import get_current_user
 from ..services.moderation import moderation_service
 
@@ -360,3 +361,98 @@ async def like_post(
     db.commit()
     
     return {"message": "Post liked successfully", "likes": current_metadata["likes"]}
+
+
+@router.post("/{post_id}/alert", response_model=AlertResponse)
+async def create_post_alert(
+    post_id: int,
+    alert_data: PostAlertCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create an alert for a specific post"""
+    
+    # Verify post exists and is in same college
+    post = db.query(Post).filter(
+        Post.id == post_id,
+        Post.college_id == current_user.college_id
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    # Verify target user exists and is in same college
+    target_user = db.query(User).filter(
+        User.id == alert_data.user_id,
+        User.college_id == current_user.college_id
+    ).first()
+    
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target user not found in your college"
+        )
+    
+    # Create alert
+    alert = Alert(
+        user_id=alert_data.user_id,
+        title=alert_data.title,
+        message=alert_data.message,
+        alert_type=alert_data.alert_type,
+        expires_at=alert_data.expires_at,
+        post_id=post_id,
+        college_id=current_user.college_id,
+        created_by=current_user.id
+    )
+    
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+    
+    # Calculate time ago
+    def calculate_time_ago(created_at: datetime) -> str:
+        now = datetime.utcnow()
+        diff = now - created_at
+        
+        if diff.days > 0:
+            return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
+        elif diff.seconds >= 3600:
+            hours = diff.seconds // 3600
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        elif diff.seconds >= 60:
+            minutes = diff.seconds // 60
+            return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+        else:
+            return "Just now"
+    
+    # Check if expired
+    def is_alert_expired(expires_at) -> bool:
+        if expires_at is None:
+            return False
+        return datetime.utcnow() > expires_at
+    
+    # Build response
+    alert_dict = {
+        "id": alert.id,
+        "user_id": alert.user_id,
+        "title": alert.title,
+        "message": alert.message,
+        "alert_type": alert.alert_type,
+        "is_enabled": alert.is_enabled,
+        "is_read": alert.is_read,
+        "expires_at": alert.expires_at,
+        "post_id": alert.post_id,
+        "college_id": alert.college_id,
+        "created_by": alert.created_by,
+        "created_at": alert.created_at,
+        "updated_at": alert.updated_at,
+        "creator_name": current_user.full_name,
+        "post_title": post.title,
+        "time_ago": calculate_time_ago(alert.created_at),
+        "is_expired": is_alert_expired(alert.expires_at)
+    }
+    
+    return AlertResponse(**alert_dict)

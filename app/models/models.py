@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, JSON, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, JSON, Numeric, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -185,4 +185,38 @@ class IndexingTask(Base):
     processed_at = Column(DateTime, nullable=True)
 
     # Relationships
+    college = relationship("College")
+
+
+class AlertType(enum.Enum):
+    EVENT_NOTIFICATION = "EVENT_NOTIFICATION"
+    FEE_REMINDER = "FEE_REMINDER"
+    ANNOUNCEMENT = "ANNOUNCEMENT"
+    DEADLINE_REMINDER = "DEADLINE_REMINDER"
+    ACADEMIC_UPDATE = "ACADEMIC_UPDATE"
+    SYSTEM_NOTIFICATION = "SYSTEM_NOTIFICATION"
+    GENERAL = "GENERAL"
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    alert_type = Column(Enum(AlertType), default=AlertType.GENERAL, nullable=False)
+    is_enabled = Column(Boolean, default=True, nullable=False)  # True=enabled, False=disabled
+    is_read = Column(Boolean, default=False, nullable=False)  # True=read, False=unread
+    expires_at = Column(DateTime, nullable=True)  # Optional expiry date
+    post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)  # Optional link to post
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # Who created the alert
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    creator = relationship("User", foreign_keys=[created_by])
+    post = relationship("Post")
     college = relationship("College")

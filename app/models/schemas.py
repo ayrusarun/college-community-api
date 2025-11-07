@@ -292,3 +292,71 @@ class AIStatsResponse(BaseModel):
     vector_database: Dict[str, Any]
     indexing: Dict[str, int]
     conversations: Dict[str, int]
+
+
+# Alert schemas
+class AlertType(str, Enum):
+    EVENT_NOTIFICATION = "EVENT_NOTIFICATION"
+    FEE_REMINDER = "FEE_REMINDER"
+    ANNOUNCEMENT = "ANNOUNCEMENT"
+    DEADLINE_REMINDER = "DEADLINE_REMINDER"
+    ACADEMIC_UPDATE = "ACADEMIC_UPDATE"
+    SYSTEM_NOTIFICATION = "SYSTEM_NOTIFICATION"
+    GENERAL = "GENERAL"
+
+
+class AlertBase(BaseModel):
+    title: str
+    message: str
+    alert_type: AlertType = AlertType.GENERAL
+    expires_at: Optional[datetime] = None
+    post_id: Optional[int] = None
+
+
+class AlertCreate(AlertBase):
+    user_id: int
+
+
+class AlertUpdate(BaseModel):
+    title: Optional[str] = None
+    message: Optional[str] = None
+    alert_type: Optional[AlertType] = None
+    is_enabled: Optional[bool] = None  # True=enabled, False=disabled
+    is_read: Optional[bool] = None  # True=read, False=unread
+    expires_at: Optional[datetime] = None
+
+
+class AlertResponse(AlertBase):
+    id: int
+    user_id: int
+    is_enabled: bool
+    is_read: bool
+    college_id: int
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+    
+    # Additional fields for rich responses
+    creator_name: str
+    post_title: Optional[str] = None
+    time_ago: str  # Human readable time difference
+    is_expired: bool  # Calculated field
+
+    class Config:
+        from_attributes = True
+
+
+class AlertListResponse(BaseModel):
+    alerts: List[AlertResponse]
+    total_count: int
+    unread_count: int
+    page: int
+    page_size: int
+
+
+class PostAlertCreate(BaseModel):
+    user_id: int
+    title: str
+    message: str
+    alert_type: AlertType = AlertType.ANNOUNCEMENT
+    expires_at: Optional[datetime] = None
