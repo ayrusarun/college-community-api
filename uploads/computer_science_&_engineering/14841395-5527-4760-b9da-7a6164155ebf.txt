@@ -1,0 +1,23 @@
+Sample File Upload Test
+=======================
+
+This is a test file for the College Community API file upload functionality.
+
+Department: Computer Science & Engineering
+Subject: Software Engineering
+Topic: File Upload API Testing
+
+Content:
+- File upload validation
+- Authentication testing
+- Database storage verification
+- File retrieval testing
+
+This file will be used to verify that:
+1. Files can be uploaded successfully
+2. File metadata is stored correctly
+3. Files can be retrieved and downloaded
+4. Department-based organization works
+5. College isolation is maintained
+
+Test Date: $(date)

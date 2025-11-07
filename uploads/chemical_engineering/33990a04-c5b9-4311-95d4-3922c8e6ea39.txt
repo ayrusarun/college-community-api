@@ -1,0 +1,229 @@
+Chemical Engineering - Process Control and Instrumentation
+
+Course: CH401 - Process Control Systems
+Semester: Spring 2024
+Department: Chemical Engineering
+
+=== CONTROL SYSTEM FUNDAMENTALS ===
+
+Basic Control Loop Components:
+1. Process (Plant)
+2. Sensor/Transmitter
+3. Controller
+4. Final Control Element (Valve)
+
+Control Objectives:
+- Regulate process variables at setpoint
+- Minimize deviation from desired conditions
+- Ensure process safety and stability
+- Optimize process performance
+
+Types of Control:
+1. Feedback Control (Closed-loop)
+2. Feedforward Control (Open-loop)
+3. Cascade Control
+4. Ratio Control
+5. Override Control
+
+=== MATHEMATICAL MODELING ===
+
+Transfer Function:
+G(s) = Y(s)/X(s)
+
+First-Order System:
+G(s) = K/(τs + 1)
+
+Where:
+- K = Process gain
+- τ = Time constant
+- Response: y(t) = K(1 - e^(-t/τ))
+
+Second-Order System:
+G(s) = K/(τ²s² + 2ζτs + 1)
+
+Where:
+- ζ = Damping coefficient
+- Responses: Overdamped (ζ>1), Critically damped (ζ=1), Underdamped (ζ<1)
+
+Time Delay (Dead Time):
+G(s) = Ke^(-θs)/(τs + 1)
+
+=== CONTROLLER DESIGN ===
+
+PID Controller:
+u(t) = Kc[e(t) + (1/τI)∫e(t)dt + τD(de/dt)]
+
+Transfer function:
+Gc(s) = Kc(1 + 1/(τIs) + τDs)
+
+Ziegler-Nichols Tuning:
+Method 1 (Step Response):
+- Kc = 1.2/RL
+- τI = 2L
+- τD = 0.5L
+
+Method 2 (Ultimate Gain):
+- Kc = 0.6Kcu
+- τI = 0.5Tu
+- τD = 0.125Tu
+
+Where:
+- R = Reaction rate
+- L = Lag time
+- Kcu = Ultimate gain
+- Tu = Ultimate period
+
+=== ADVANCED CONTROL STRATEGIES ===
+
+Cascade Control:
+- Primary (master) controller
+- Secondary (slave) controller
+- Faster response to disturbances
+- Improved performance
+
+Feedforward Control:
+- Measures disturbances directly
+- Corrective action before effect appears
+- Combined with feedback for offset elimination
+
+Model Predictive Control (MPC):
+- Predicts future plant behavior
+- Optimizes control moves
+- Handles constraints explicitly
+- Rolling horizon optimization
+
+=== PROCESS INSTRUMENTATION ===
+
+Temperature Measurement:
+1. Thermocouples (Types J, K, R, S, T)
+2. Resistance Temperature Detectors (RTDs)
+3. Thermistors
+4. Infrared Pyrometers
+
+Pressure Measurement:
+1. Bourdon Tube
+2. Diaphragm
+3. Bellows
+4. Strain Gauge
+5. Capacitive Transducers
+
+Flow Measurement:
+1. Orifice Plate
+2. Venturi Meter
+3. Rotameter
+4. Turbine Flowmeter
+5. Magnetic Flowmeter
+6. Ultrasonic Flowmeter
+
+Level Measurement:
+1. Float and Tape
+2. Differential Pressure
+3. Capacitive
+4. Ultrasonic
+5. Radar
+
+=== CONTROL VALVES ===
+
+Types:
+1. Globe Valve
+2. Ball Valve
+3. Butterfly Valve
+4. Gate Valve
+
+Characteristics:
+1. Linear: Flow ∝ Stem position
+2. Equal Percentage: %ΔFlow/%ΔPosition = constant
+3. Quick Opening: Large flow change for small stem movement
+
+Valve Sizing:
+Cv = Q√(ΔP/SG)
+
+Where:
+- Cv = Valve flow coefficient
+- Q = Flow rate (GPM)
+- ΔP = Pressure drop (psi)
+- SG = Specific gravity
+
+=== INDUSTRIAL APPLICATIONS ===
+
+Distillation Column Control:
+- Temperature control (tray temperature)
+- Composition control (analyzers)
+- Pressure control
+- Level control (reflux drum, reboiler)
+
+Heat Exchanger Control:
+- Outlet temperature control
+- Bypass control
+- Variable area control
+- Steam flow control
+
+Reactor Control:
+- Temperature control (cooling/heating)
+- Pressure control
+- Level control
+- Composition control
+- Safety interlocks
+
+=== SAFETY AND INTERLOCKS ===
+
+Safety Instrumented Systems (SIS):
+- Safety Integrity Level (SIL)
+- Probability of Failure on Demand (PFD)
+- Hardware Fault Tolerance
+
+Emergency Shutdown Systems:
+- Process shutdown sequences
+- Equipment protection
+- Personnel safety
+- Environmental protection
+
+Alarms and Trips:
+- Process variable limits
+- Equipment status monitoring
+- Operator notification
+- Automatic actions
+
+=== DISTRIBUTED CONTROL SYSTEMS (DCS) ===
+
+Architecture:
+- Control processors
+- Operator stations
+- Engineering stations
+- Communication networks
+
+Functions:
+- Continuous control
+- Batch control
+- Sequential control
+- Advanced control
+- Data acquisition and storage
+
+Benefits:
+- Centralized monitoring
+- Distributed processing
+- Improved reliability
+- Enhanced operator interface
+- Better data management
+
+=== PROCESS OPTIMIZATION ===
+
+Real-Time Optimization (RTO):
+- Economic objectives
+- Constraint handling
+- Model updating
+- Setpoint calculation
+
+Key Performance Indicators (KPIs):
+- Process efficiency
+- Product quality
+- Energy consumption
+- Environmental impact
+- Safety performance
+
+Advanced Process Control Benefits:
+- Improved product quality (2-5%)
+- Increased throughput (2-8%)
+- Reduced energy consumption (5-15%)
+- Lower raw material usage (1-3%)
+- Enhanced safety and environmental performance

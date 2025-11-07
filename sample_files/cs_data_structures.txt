@@ -1,0 +1,70 @@
+Computer Science & Engineering - Data Structures and Algorithms
+
+Course: CS301 - Advanced Data Structures
+Semester: Fall 2024
+Department: Computer Science & Engineering
+
+=== BINARY TREES ===
+
+1. Binary Search Tree (BST)
+   - Left subtree contains only nodes with keys lesser than the node's key
+   - Right subtree contains only nodes with keys greater than the node's key
+   - Both left and right subtrees must also be binary search trees
+
+2. AVL Tree Operations:
+   - Insertion: O(log n)
+   - Deletion: O(log n) 
+   - Search: O(log n)
+   
+3. Tree Traversals:
+   - Inorder: Left -> Root -> Right
+   - Preorder: Root -> Left -> Right
+   - Postorder: Left -> Right -> Root
+
+=== GRAPH ALGORITHMS ===
+
+Dijkstra's Algorithm:
+1. Initialize distance to all vertices as infinity
+2. Set distance to source as 0
+3. Pick minimum distance vertex not yet processed
+4. Update distance values of adjacent vertices
+
+Time Complexity: O(V²) with adjacency matrix
+Space Complexity: O(V)
+
+=== SORTING ALGORITHMS ===
+
+Quick Sort:
+- Average case: O(n log n)
+- Worst case: O(n²)
+- Best case: O(n log n)
+- Space: O(log n)
+
+Merge Sort:
+- All cases: O(n log n)
+- Space: O(n)
+
+=== DYNAMIC PROGRAMMING ===
+
+Fibonacci Sequence:
+F(n) = F(n-1) + F(n-2)
+Base cases: F(0) = 0, F(1) = 1
+
+Longest Common Subsequence (LCS):
+- Used in diff utilities, bioinformatics
+- Time: O(mn), Space: O(mn)
+
+=== CODING INTERVIEW TIPS ===
+
+1. Always clarify the problem statement
+2. Start with a brute force solution
+3. Optimize step by step
+4. Consider edge cases
+5. Test with sample inputs
+
+Common Patterns:
+- Two Pointers
+- Sliding Window
+- Fast & Slow Pointers
+- Merge Intervals
+- Cyclic Sort

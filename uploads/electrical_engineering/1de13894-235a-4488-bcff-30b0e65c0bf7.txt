@@ -1,0 +1,199 @@
+Electrical Engineering - Power Systems Analysis
+
+Course: EE303 - Power System Analysis
+Semester: Fall 2024
+Department: Electrical Engineering
+
+=== POWER SYSTEM COMPONENTS ===
+
+Generation:
+- Thermal Power Plants (Coal, Gas, Nuclear)
+- Hydroelectric Power Plants
+- Renewable Energy (Solar, Wind, Biomass)
+- Distributed Generation
+
+Transmission System:
+- Extra High Voltage (EHV): 400kV, 765kV
+- High Voltage (HV): 132kV, 220kV
+- Overhead lines and underground cables
+- Substations and switchyards
+
+Distribution System:
+- Primary Distribution: 11kV, 33kV
+- Secondary Distribution: 400V, 230V
+- Distribution transformers
+- Consumer connections
+
+=== PER-UNIT SYSTEM ===
+
+Base Values:
+- Base Power: Sbase (MVA)
+- Base Voltage: Vbase (kV)
+- Base Current: Ibase = Sbase/(√3 × Vbase)
+- Base Impedance: Zbase = Vbase²/Sbase
+
+Per-unit Quantities:
+- Voltage p.u. = Actual Voltage / Base Voltage
+- Current p.u. = Actual Current / Base Current
+- Power p.u. = Actual Power / Base Power
+- Impedance p.u. = Actual Impedance / Base Impedance
+
+Advantages:
+- Eliminates voltage level complications
+- Simplified calculations in multi-voltage systems
+- Equipment parameters fall in narrow ranges
+
+=== LOAD FLOW ANALYSIS ===
+
+Objective: Determine voltage magnitude and phase angle
+at each bus for specified generation and load
+
+Bus Classifications:
+1. Slack Bus (Reference Bus):
+   - |V| and δ specified
+   - P and Q calculated
+
+2. PV Bus (Generator Bus):
+   - P and |V| specified
+   - Q and δ calculated
+
+3. PQ Bus (Load Bus):
+   - P and Q specified
+   - |V| and δ calculated
+
+Solution Methods:
+1. Gauss-Seidel Method
+2. Newton-Raphson Method
+3. Fast Decoupled Load Flow
+
+=== FAULT ANALYSIS ===
+
+Types of Faults:
+1. Three-phase fault (Symmetrical)
+2. Single line-to-ground fault
+3. Line-to-line fault
+4. Double line-to-ground fault
+
+Symmetrical Components:
+- Positive sequence (a₀ = 1)
+- Negative sequence (a₂ = a²)
+- Zero sequence (a₁ = a)
+
+Where a = e^(j120°) = -0.5 + j0.866
+
+Sequence Networks:
+- Positive sequence: Normal operating impedances
+- Negative sequence: Same as positive (for static equipment)
+- Zero sequence: Depends on grounding and line configuration
+
+Fault Calculations:
+Three-phase fault current:
+If = Vf / (Z₁ + Zf)
+
+Where:
+- Vf = Pre-fault voltage
+- Z₁ = Positive sequence impedance
+- Zf = Fault impedance
+
+=== STABILITY ANALYSIS ===
+
+Types of Stability:
+1. Steady-state Stability
+2. Transient Stability
+3. Dynamic Stability
+
+Equal Area Criterion:
+- Used for transient stability analysis
+- Accelerating area = Decelerating area
+- Critical clearing angle determination
+
+Swing Equation:
+M(d²δ/dt²) = Pm - Pe
+
+Where:
+- M = Inertia constant
+- δ = Rotor angle
+- Pm = Mechanical power
+- Pe = Electrical power
+
+Power-Angle Characteristics:
+P = (E₁E₂/X) sin δ
+
+Where:
+- E₁, E₂ = Internal EMFs of machines
+- X = Reactance between machines
+- δ = Power angle
+
+=== PROTECTION SYSTEMS ===
+
+Protective Relays:
+1. Overcurrent Relays (51/50)
+2. Distance Relays (21)
+3. Differential Relays (87)
+4. Frequency Relays (81)
+5. Voltage Relays (27/59)
+
+Protection Philosophy:
+- Selectivity: Only faulty section isolated
+- Sensitivity: Detect minimum fault current
+- Speed: Fast fault clearing
+- Reliability: Dependable operation
+- Security: No unwanted operations
+
+Coordination:
+- Time grading
+- Current grading
+- Distance grading
+
+=== ECONOMIC OPERATION ===
+
+Economic Load Dispatch:
+Objective: Minimize total generation cost
+Subject to: Power balance and generation limits
+
+Lambda Iteration Method:
+dCi/dPi = λ (for all generators)
+
+Where:
+- Ci = Cost function of generator i
+- Pi = Power output of generator i
+- λ = Incremental cost (Rs/MWh)
+
+Unit Commitment:
+- Determine optimal generation schedule
+- Consider start-up costs and constraints
+- Dynamic programming approach
+
+=== POWER QUALITY ===
+
+Issues:
+1. Voltage variations (sag, swell, flicker)
+2. Frequency variations
+3. Harmonics
+4. Unbalance
+5. Interruptions
+
+Standards:
+- IEEE 519: Harmonic limits
+- IEC 61000: EMC standards
+- IEEE 1159: Power quality monitoring
+
+Mitigation Devices:
+- FACTS devices (SVC, STATCOM, TCSC)
+- Filters (passive and active)
+- Voltage regulators
+- Uninterruptible Power Supply (UPS)
+
+=== RENEWABLE INTEGRATION ===
+
+Challenges:
+- Intermittency and variability
+- Grid stability issues
+- Voltage regulation problems
+- Power quality concerns
+
+Solutions:
+- Energy storage systems
+- Smart grid technologies
+- Demand response programs
+- Advanced forecasting methods

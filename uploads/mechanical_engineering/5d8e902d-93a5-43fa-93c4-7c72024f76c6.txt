@@ -1,0 +1,96 @@
+Mechanical Engineering - Thermodynamics
+
+Course: ME205 - Engineering Thermodynamics
+Semester: Spring 2024
+Department: Mechanical Engineering
+
+=== FIRST LAW OF THERMODYNAMICS ===
+
+Energy Conservation Principle:
+ΔU = Q - W
+
+Where:
+- ΔU = Change in internal energy
+- Q = Heat added to the system
+- W = Work done by the system
+
+For a closed system:
+dU = δQ - δW
+
+=== THERMODYNAMIC PROCESSES ===
+
+1. Isothermal Process (Constant Temperature):
+   - PV = constant
+   - ΔU = 0 (for ideal gas)
+   - W = nRT ln(V₂/V₁)
+
+2. Adiabatic Process (No heat transfer):
+   - PVᵞ = constant
+   - Q = 0
+   - W = (P₁V₁ - P₂V₂)/(γ-1)
+
+3. Isochoric Process (Constant Volume):
+   - V = constant
+   - W = 0
+   - Q = nCᵥΔT
+
+4. Isobaric Process (Constant Pressure):
+   - P = constant
+   - W = PΔV
+   - Q = nCₚΔT
+
+=== HEAT ENGINES ===
+
+Carnot Engine Efficiency:
+η = 1 - (T_cold/T_hot)
+
+Otto Cycle (Gasoline Engine):
+1. Adiabatic compression
+2. Constant volume heat addition
+3. Adiabatic expansion
+4. Constant volume heat rejection
+
+Diesel Cycle:
+1. Adiabatic compression
+2. Constant pressure heat addition
+3. Adiabatic expansion
+4. Constant volume heat rejection
+
+=== REFRIGERATION CYCLE ===
+
+Coefficient of Performance (COP):
+COP = Q_cold / W_input
+
+Vapor Compression Cycle:
+1. Compression (1-2): Isentropic
+2. Condensation (2-3): Isobaric
+3. Expansion (3-4): Isenthalpic
+4. Evaporation (4-1): Isobaric
+
+=== STEAM TABLES ===
+
+Properties of saturated steam:
+- Saturation temperature vs pressure
+- Specific volume (vf, vg, vfg)
+- Enthalpy (hf, hg, hfg)
+- Entropy (sf, sg, sfg)
+
+Quality of wet steam:
+x = mg/(mf + mg)
+
+=== APPLICATIONS ===
+
+Power Plants:
+- Rankine cycle efficiency
+- Reheat and regenerative cycles
+- Cogeneration systems
+
+Automotive:
+- Engine performance analysis
+- Fuel efficiency optimization
+- Emission control systems
+
+HVAC Systems:
+- Psychrometric processes
+- Air conditioning load calculations
+- Energy efficiency standards

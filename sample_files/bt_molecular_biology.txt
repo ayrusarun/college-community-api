@@ -1,0 +1,231 @@
+Biotechnology - Molecular Biology and Genetic Engineering
+
+Course: BT301 - Molecular Biology Techniques
+Semester: Fall 2024
+Department: Biotechnology
+
+=== DNA STRUCTURE AND REPLICATION ===
+
+DNA Structure:
+- Double helix model (Watson & Crick)
+- Antiparallel strands (5' to 3' direction)
+- Base pairing: A-T, G-C
+- Major and minor grooves
+
+DNA Replication:
+1. Initiation: Origin of replication (oriC)
+2. Elongation: Leading and lagging strands
+3. Termination: Ter sites
+
+Key Enzymes:
+- DNA Helicase: Unwinds double helix
+- DNA Primase: Synthesizes RNA primers
+- DNA Polymerase III: Main replicating enzyme
+- DNA Ligase: Joins Okazaki fragments
+
+=== GENE EXPRESSION ===
+
+Central Dogma:
+DNA → RNA → Protein
+
+Transcription Process:
+1. Initiation: RNA polymerase binds to promoter
+2. Elongation: RNA synthesis in 5' to 3' direction
+3. Termination: Rho-dependent or independent
+
+Translation Process:
+1. Initiation: Ribosome assembly at start codon
+2. Elongation: Peptide bond formation
+3. Termination: Stop codon recognition
+
+Genetic Code:
+- 64 codons (61 sense + 3 stop)
+- Degeneracy: Multiple codons for same amino acid
+- Universality: Same code across species
+
+=== RECOMBINANT DNA TECHNOLOGY ===
+
+Restriction Enzymes:
+- Type II endonucleases
+- Recognize specific palindromic sequences
+- Create sticky or blunt ends
+- Examples: EcoRI, BamHI, HindIII
+
+Vectors:
+1. Plasmids (pUC, pBR322)
+2. Bacteriophages (λ, M13)
+3. Cosmids
+4. YACs (Yeast Artificial Chromosomes)
+5. BACs (Bacterial Artificial Chromosomes)
+
+Cloning Steps:
+1. Restriction digestion
+2. Ligation (T4 DNA ligase)
+3. Transformation
+4. Selection (antibiotic resistance)
+5. Screening (blue-white selection)
+
+=== POLYMERASE CHAIN REACTION (PCR) ===
+
+Components:
+- Template DNA
+- Primers (forward and reverse)
+- DNA polymerase (Taq polymerase)
+- dNTPs
+- Buffer with Mg²⁺
+
+PCR Cycles:
+1. Denaturation: 94°C (30 sec)
+2. Annealing: 50-65°C (30 sec)
+3. Extension: 72°C (1 min/kb)
+
+Applications:
+- Gene amplification
+- Site-directed mutagenesis
+- DNA sequencing
+- Genetic fingerprinting
+- Medical diagnostics
+
+PCR Variants:
+- RT-PCR: Reverse transcription PCR
+- qPCR: Quantitative real-time PCR
+- Nested PCR: Increased specificity
+- Multiplex PCR: Multiple targets
+
+=== PROTEIN EXPRESSION SYSTEMS ===
+
+Prokaryotic Systems:
+1. E. coli expression:
+   - High protein yield
+   - Rapid growth
+   - Simple purification
+   - No post-translational modifications
+
+Expression Vectors:
+- pET system (T7 promoter)
+- pGEX (GST fusion)
+- pMAL (MBP fusion)
+
+Eukaryotic Systems:
+1. Yeast (S. cerevisiae, P. pastoris)
+2. Insect cells (baculovirus system)
+3. Mammalian cells (CHO, HEK293)
+
+Advantages:
+- Proper protein folding
+- Post-translational modifications
+- Secretion capability
+
+=== DNA SEQUENCING ===
+
+Sanger Sequencing (Chain Termination):
+- Uses dideoxynucleotides (ddNTPs)
+- DNA polymerase incorporation
+- Gel electrophoresis separation
+- Fluorescent detection
+
+Next-Generation Sequencing (NGS):
+1. Illumina (sequencing by synthesis)
+2. Ion Torrent (semiconductor sequencing)
+3. PacBio (single-molecule real-time)
+4. Oxford Nanopore (nanopore sequencing)
+
+Applications:
+- Genome sequencing projects
+- Metagenomics
+- Transcriptomics (RNA-seq)
+- Epigenomics (ChIP-seq)
+
+=== GENE EDITING TECHNOLOGIES ===
+
+CRISPR-Cas9 System:
+- Guide RNA (gRNA)
+- Cas9 nuclease
+- PAM sequence recognition
+- Double-strand break formation
+
+Mechanism:
+1. gRNA binding to target DNA
+2. Cas9 conformational change
+3. DNA cleavage 3 bp upstream of PAM
+4. DNA repair mechanisms (NHEJ or HDR)
+
+Applications:
+- Gene knockout
+- Gene knock-in
+- Base editing
+- Epigenome editing
+
+Other Systems:
+- TALENs (Transcription Activator-Like Effector Nucleases)
+- Zinc Finger Nucleases (ZFNs)
+- Prime editing
+
+=== PROTEIN ANALYSIS TECHNIQUES ===
+
+SDS-PAGE:
+- Protein separation by size
+- Denaturing conditions
+- Molecular weight determination
+- Protein purity assessment
+
+Western Blotting:
+1. SDS-PAGE separation
+2. Transfer to membrane
+3. Antibody detection
+4. Signal visualization
+
+Protein Purification:
+1. Cell lysis
+2. Initial clarification
+3. Chromatographic separation:
+   - Ion exchange
+   - Size exclusion
+   - Hydrophobic interaction
+   - Affinity chromatography
+
+=== APPLICATIONS IN BIOTECHNOLOGY ===
+
+Medical Applications:
+- Recombinant proteins (insulin, growth hormone)
+- Gene therapy
+- Personalized medicine
+- Diagnostic tests
+
+Agricultural Biotechnology:
+- Transgenic crops
+- Disease resistance
+- Herbicide tolerance
+- Enhanced nutritional content
+
+Industrial Biotechnology:
+- Enzyme production
+- Biofuels
+- Biodegradable plastics
+- Pharmaceutical intermediates
+
+Environmental Applications:
+- Bioremediation
+- Biosensors
+- Waste treatment
+- Carbon sequestration
+
+=== ETHICAL AND REGULATORY CONSIDERATIONS ===
+
+Biosafety:
+- Risk assessment
+- Containment levels (BSL-1 to BSL-4)
+- Institutional Biosafety Committees (IBCs)
+- Environmental release protocols
+
+Ethical Issues:
+- Informed consent
+- Genetic privacy
+- Gene editing in humans
+- Environmental impact
+
+Regulatory Bodies:
+- FDA (Food and Drug Administration)
+- EPA (Environmental Protection Agency)
+- USDA (US Department of Agriculture)
+- International guidelines (WHO, OECD)

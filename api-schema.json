@@ -1,0 +1,298 @@
+{
+  "api_info": {
+    "name": "College Community API",
+    "base_url": "http://localhost:8000",
+    "version": "1.0.0",
+    "authentication": "JWT Bearer Token",
+    "content_type": "application/json"
+  },
+  "authentication": {
+    "login": {
+      "method": "POST",
+      "endpoint": "/auth/login",
+      "request_body": {
+        "username": "string",
+        "password": "string"
+      },
+      "response": {
+        "access_token": "string",
+        "token_type": "bearer"
+      },
+      "sample_users": [
+        {"username": "john_doe", "password": "password123", "college": "Stanford"},
+        {"username": "jane_smith", "password": "password123", "college": "MIT"},
+        {"username": "sarah_johnson", "password": "password123", "college": "Stanford"}
+      ]
+    }
+  },
+  "endpoints": {
+    "health_check": {
+      "method": "GET",
+      "endpoint": "/health",
+      "auth_required": false,
+      "response": {"status": "healthy"}
+    },
+    "get_current_user": {
+      "method": "GET",
+      "endpoint": "/auth/me",
+      "auth_required": true,
+      "response_schema": {
+        "id": "int",
+        "username": "string",
+        "email": "string",
+        "full_name": "string",
+        "department": "string",
+        "class_name": "string",
+        "academic_year": "string",
+        "college_id": "int",
+        "college_name": "string",
+        "college_slug": "string",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    },
+    "get_users": {
+      "method": "GET",
+      "endpoint": "/users/",
+      "auth_required": true,
+      "description": "Get all users from same college (multi-tenant)",
+      "response": "array of user objects"
+    },
+    "get_posts": {
+      "method": "GET",
+      "endpoint": "/posts/",
+      "auth_required": true,
+      "query_parameters": {
+        "skip": {"type": "int", "default": 0, "description": "Pagination offset"},
+        "limit": {"type": "int", "default": 50, "description": "Max posts per page"}
+      },
+      "response_schema": {
+        "id": "int",
+        "title": "string",
+        "content": "string",
+        "image_url": "string|null",
+        "post_type": "enum[IMPORTANT,ANNOUNCEMENT,INFO,GENERAL]",
+        "author_id": "int",
+        "college_id": "int",
+        "post_metadata": {
+          "likes": "int",
+          "comments": "int",
+          "shares": "int"
+        },
+        "created_at": "datetime",
+        "updated_at": "datetime",
+        "author_name": "string",
+        "author_department": "string",
+        "time_ago": "string"
+      },
+      "notes": "Posts are automatically ordered by priority (IMPORTANT → ANNOUNCEMENT → INFO → GENERAL) then by created_at desc"
+    },
+    "create_post": {
+      "method": "POST",
+      "endpoint": "/posts/",
+      "auth_required": true,
+      "request_schema": {
+        "title": "string (required)",
+        "content": "string (required)",
+        "image_url": "string (optional)",
+        "post_type": "enum[IMPORTANT,ANNOUNCEMENT,INFO,GENERAL] (default: GENERAL)"
+      },
+      "response": "Same as get_posts response"
+    },
+    "get_single_post": {
+      "method": "GET",
+      "endpoint": "/posts/{post_id}",
+      "auth_required": true,
+      "path_parameters": {
+        "post_id": "int"
+      },
+      "response": "Single post object"
+    },
+    "update_post": {
+      "method": "PUT",
+      "endpoint": "/posts/{post_id}",
+      "auth_required": true,
+      "description": "Only post author can update",
+      "request_schema": {
+        "title": "string (optional)",
+        "content": "string (optional)",
+        "image_url": "string (optional)",
+        "post_type": "enum (optional)"
+      }
+    },
+    "update_post_engagement": {
+      "method": "PATCH",
+      "endpoint": "/posts/{post_id}/metadata",
+      "auth_required": true,
+      "description": "Any user can update engagement metrics",
+      "request_schema": {
+        "likes": "int (optional)",
+        "comments": "int (optional)",
+        "shares": "int (optional)"
+      }
+    },
+    "like_post": {
+      "method": "POST",
+      "endpoint": "/posts/{post_id}/like",
+      "auth_required": true,
+      "description": "Quick like action - increments likes by 1",
+      "response": {
+        "message": "Post liked successfully",
+        "likes": "int"
+      }
+    },
+    "get_posts_by_type": {
+      "method": "GET",
+      "endpoint": "/posts/type/{post_type}",
+      "auth_required": true,
+      "path_parameters": {
+        "post_type": "enum[IMPORTANT,ANNOUNCEMENT,INFO,GENERAL]"
+      },
+      "query_parameters": {
+        "skip": "int",
+        "limit": "int"
+      }
+    }
+  },
+  "data_models": {
+    "user": {
+      "fields": {
+        "id": "Primary key",
+        "username": "Unique identifier",
+        "email": "User email",
+        "full_name": "Display name",
+        "department": "Academic department",
+        "class_name": "Student class (Senior, Junior, etc)",
+        "academic_year": "Current academic year",
+        "college_id": "Foreign key to college",
+        "college_name": "College name for display",
+        "college_slug": "College identifier",
+        "created_at": "Account creation time",
+        "updated_at": "Last update time"
+      }
+    },
+    "post": {
+      "fields": {
+        "id": "Primary key",
+        "title": "Post title",
+        "content": "Post content/description",
+        "image_url": "Optional image URL",
+        "post_type": "Priority level (IMPORTANT > ANNOUNCEMENT > INFO > GENERAL)",
+        "author_id": "Post creator ID",
+        "college_id": "Multi-tenant isolation",
+        "post_metadata": "JSON object with engagement metrics",
+        "created_at": "Post creation time",
+        "updated_at": "Last modification time",
+        "author_name": "Author display name",
+        "author_department": "Author department",
+        "time_ago": "Human readable time difference"
+      }
+    },
+    "post_metadata": {
+      "structure": {
+        "likes": "Number of likes",
+        "comments": "Number of comments",
+        "shares": "Number of shares"
+      }
+    }
+  },
+  "enums": {
+    "post_type": {
+      "values": ["IMPORTANT", "ANNOUNCEMENT", "INFO", "GENERAL"],
+      "priority_order": ["IMPORTANT", "ANNOUNCEMENT", "INFO", "GENERAL"],
+      "ui_colors": {
+        "IMPORTANT": "red",
+        "ANNOUNCEMENT": "blue", 
+        "INFO": "yellow",
+        "GENERAL": "gray"
+      }
+    }
+  },
+  "business_rules": {
+    "multi_tenant": "Users only see content from their college",
+    "post_priority": "Posts ordered by type priority then creation date",
+    "authentication": "JWT token required for all user operations",
+    "post_editing": "Only post authors can edit posts",
+    "engagement": "Any user can like/comment on posts",
+    "pagination": "Use skip/limit for efficient loading"
+  },
+  "flutter_ui_requirements": {
+    "screens": [
+      {
+        "name": "LoginScreen",
+        "description": "Authentication with username/password",
+        "apis_used": ["/auth/login"]
+      },
+      {
+        "name": "FeedScreen", 
+        "description": "Main post feed with infinite scroll",
+        "apis_used": ["/posts/", "/posts/{id}/like"],
+        "features": ["pagination", "pull_to_refresh", "post_priority_display"]
+      },
+      {
+        "name": "CreatePostScreen",
+        "description": "Form to create new posts",
+        "apis_used": ["/posts/"],
+        "features": ["image_picker", "post_type_selector"]
+      },
+      {
+        "name": "ProfileScreen",
+        "description": "User profile and settings",
+        "apis_used": ["/auth/me"],
+        "features": ["user_info_display"]
+      },
+      {
+        "name": "PostDetailScreen",
+        "description": "Single post view with full content",
+        "apis_used": ["/posts/{id}", "/posts/{id}/metadata"],
+        "features": ["full_image_view", "engagement_actions"]
+      }
+    ],
+    "key_components": [
+      {
+        "name": "PostCard",
+        "description": "Reusable post display widget",
+        "props": ["post_object", "on_like", "on_tap"]
+      },
+      {
+        "name": "PostTypeBadge", 
+        "description": "Priority indicator with colors",
+        "props": ["post_type"]
+      },
+      {
+        "name": "EngagementRow",
+        "description": "Like/comment/share buttons",
+        "props": ["metadata", "post_id"]
+      }
+    ],
+    "state_management": {
+      "auth_state": "JWT token and user info",
+      "posts_state": "Paginated posts list",
+      "ui_state": "Loading, error states"
+    }
+  },
+  "sample_workflow": {
+    "user_journey": [
+      "1. User opens app → Show LoginScreen",
+      "2. User enters credentials → POST /auth/login",
+      "3. Store JWT token → Navigate to FeedScreen", 
+      "4. Load initial posts → GET /posts/?limit=20",
+      "5. User scrolls down → GET /posts/?skip=20&limit=20",
+      "6. User likes post → POST /posts/{id}/like",
+      "7. User creates post → Navigate to CreatePostScreen → POST /posts/",
+      "8. User views profile → GET /auth/me"
+    ]
+  },
+  "testing_data": {
+    "test_server": "http://localhost:8000",
+    "sample_credentials": {
+      "username": "john_doe",
+      "password": "password123"
+    },
+    "sample_post_creation": {
+      "title": "Test Post from Flutter",
+      "content": "This is a test post created from the Flutter app!",
+      "post_type": "GENERAL"
+    }
+  }
+}

@@ -1,0 +1,271 @@
+Information Technology - Database Management Systems
+
+Course: IT302 - Database Management Systems
+Semester: Spring 2024
+Department: Information Technology
+
+=== DATABASE CONCEPTS ===
+
+Database: Organized collection of structured data
+DBMS: Software system for managing databases
+
+Characteristics of Database Approach:
+- Data independence
+- Efficient data access
+- Data integrity and security
+- Data administration
+- Concurrent access and crash recovery
+- Reduced application development time
+
+Database Users:
+1. End users (naive, sophisticated, standalone)
+2. Database administrators (DBAs)
+3. Database designers
+4. Application programmers
+5. System analysts
+
+=== DATABASE MODELS ===
+
+Hierarchical Model:
+- Tree-like structure
+- Parent-child relationships
+- Examples: IMS (IBM)
+
+Network Model:
+- Graph structure
+- Many-to-many relationships
+- CODASYL standards
+
+Relational Model:
+- Tables (relations)
+- Rows (tuples) and columns (attributes)
+- Primary and foreign keys
+- Most widely used
+
+Object-Oriented Model:
+- Objects with attributes and methods
+- Inheritance and encapsulation
+- Complex data types
+
+=== RELATIONAL MODEL ===
+
+Basic Concepts:
+- Relation (table)
+- Tuple (row)
+- Attribute (column)
+- Domain (set of values)
+- Degree (number of attributes)
+- Cardinality (number of tuples)
+
+Keys:
+1. Super key: Set of attributes that uniquely identify tuples
+2. Candidate key: Minimal super key
+3. Primary key: Chosen candidate key
+4. Foreign key: References primary key of another relation
+5. Composite key: Key with multiple attributes
+
+Integrity Constraints:
+1. Entity Integrity: Primary key cannot be NULL
+2. Referential Integrity: Foreign key must match existing primary key
+3. Domain Integrity: Values must be from specified domain
+
+=== STRUCTURED QUERY LANGUAGE (SQL) ===
+
+Data Definition Language (DDL):
+```sql
+CREATE TABLE Students (
+    student_id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES Departments(dept_id)
+);
+
+ALTER TABLE Students ADD COLUMN phone VARCHAR(15);
+DROP TABLE Students;
+```
+
+Data Manipulation Language (DML):
+```sql
+-- INSERT
+INSERT INTO Students VALUES (1, 'John Doe', 'john@email.com', 101);
+
+-- SELECT
+SELECT name, email FROM Students WHERE department_id = 101;
+
+-- UPDATE
+UPDATE Students SET email = 'newemail@email.com' WHERE student_id = 1;
+
+-- DELETE
+DELETE FROM Students WHERE student_id = 1;
+```
+
+Advanced SQL:
+```sql
+-- Joins
+SELECT s.name, d.dept_name 
+FROM Students s JOIN Departments d ON s.department_id = d.dept_id;
+
+-- Subqueries
+SELECT name FROM Students WHERE department_id IN 
+    (SELECT dept_id FROM Departments WHERE dept_name = 'Computer Science');
+
+-- Aggregate Functions
+SELECT department_id, COUNT(*) as student_count 
+FROM Students GROUP BY department_id HAVING COUNT(*) > 5;
+```
+
+=== DATABASE DESIGN ===
+
+Entity-Relationship (ER) Model:
+- Entities: Objects or things
+- Attributes: Properties of entities
+- Relationships: Associations between entities
+
+ER Diagram Components:
+- Rectangles: Entities
+- Ellipses: Attributes
+- Diamonds: Relationships
+- Lines: Connections
+
+Relationship Types:
+1. One-to-One (1:1)
+2. One-to-Many (1:M)
+3. Many-to-Many (M:N)
+
+Participation Constraints:
+- Total participation (double lines)
+- Partial participation (single lines)
+
+=== NORMALIZATION ===
+
+Purpose: Eliminate data redundancy and update anomalies
+
+Normal Forms:
+1. First Normal Form (1NF):
+   - Atomic values only
+   - No repeating groups
+
+2. Second Normal Form (2NF):
+   - 1NF + No partial dependencies
+   - Non-key attributes fully dependent on primary key
+
+3. Third Normal Form (3NF):
+   - 2NF + No transitive dependencies
+   - Non-key attributes not dependent on other non-key attributes
+
+4. Boyce-Codd Normal Form (BCNF):
+   - 3NF + Every determinant is a candidate key
+
+Functional Dependencies:
+X → Y: If two tuples have same X value, they must have same Y value
+
+Decomposition:
+- Lossless join decomposition
+- Dependency preservation
+
+=== TRANSACTION MANAGEMENT ===
+
+Transaction: Collection of operations forming single logical unit
+
+ACID Properties:
+1. Atomicity: All or nothing execution
+2. Consistency: Database remains in consistent state
+3. Isolation: Concurrent transactions don't interfere
+4. Durability: Committed changes are permanent
+
+Transaction States:
+- Active: Initial state, transaction executing
+- Partially committed: After final statement executed
+- Failed: Cannot proceed with normal execution
+- Aborted: Transaction rolled back
+- Committed: Transaction completed successfully
+
+Concurrency Control:
+Lock-based protocols:
+- Shared locks (S)
+- Exclusive locks (X)
+- Two-phase locking (2PL)
+
+Deadlock:
+- Prevention
+- Detection and recovery
+- Avoidance (wound-wait, wait-die)
+
+=== DATABASE RECOVERY ===
+
+Failure Types:
+1. Transaction failure
+2. System failure
+3. Media failure
+
+Recovery Techniques:
+1. Log-based recovery
+2. Shadow paging
+3. Checkpointing
+
+Write-Ahead Logging (WAL):
+- Log record written before data modification
+- UNDO and REDO operations
+- Commit protocol
+
+=== INDEXING AND HASHING ===
+
+Indexing:
+Purpose: Speed up data retrieval
+
+Types:
+1. Primary index: On primary key
+2. Secondary index: On non-key attributes
+3. Clustering index: On ordered file
+4. Dense vs. Sparse indexing
+
+B+ Trees:
+- Balanced tree structure
+- All data in leaf nodes
+- Efficient range queries
+- Logarithmic search time
+
+Hashing:
+- Hash function maps key to bucket
+- Static vs. Dynamic hashing
+- Collision resolution (chaining, open addressing)
+
+=== DATABASE ARCHITECTURE ===
+
+Three-Level Architecture:
+1. External Level: User views
+2. Conceptual Level: Logical structure
+3. Internal Level: Physical storage
+
+Data Independence:
+- Logical data independence
+- Physical data independence
+
+Centralized vs. Distributed Databases:
+- Data distribution
+- Replication strategies
+- Distributed query processing
+
+=== EMERGING TECHNOLOGIES ===
+
+NoSQL Databases:
+1. Document stores (MongoDB)
+2. Key-value stores (Redis)
+3. Column-family (Cassandra)
+4. Graph databases (Neo4j)
+
+Big Data:
+- Hadoop ecosystem
+- MapReduce paradigm
+- Spark for in-memory processing
+
+Cloud Databases:
+- Database as a Service (DBaaS)
+- Scalability and elasticity
+- Multi-tenancy
+
+In-Memory Databases:
+- Faster data access
+- Real-time analytics
+- Examples: SAP HANA, Redis
