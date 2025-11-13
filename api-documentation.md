@@ -790,3 +790,79 @@ showDialog(
   )
 );
 ```
+
+## News API Endpoints
+
+### Tech News Headlines
+**GET** `/news/tech-headlines`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Description:** Fetches technology news relevant to students with intelligent caching.
+
+**Response:**
+```json
+{
+  "success": true,
+  "articles": [
+    {
+      "title": "New AI Course Launched at Stanford",
+      "description": "Stanford University launches comprehensive AI course...",
+      "url": "https://example.com/article",
+      "image": "https://example.com/image.jpg",
+      "publishedAt": "2025-11-13T10:00:00Z",
+      "source": "TechCrunch",
+      "content": "Article preview content..."
+    }
+  ],
+  "total_articles": 15,
+  "cache_info": {
+    "is_cached": true,
+    "last_updated": "2025-11-13T10:00:00Z",
+    "next_refresh": "2025-11-13T10:10:00Z"
+  },
+  "message": "Tech news fetched successfully"
+}
+```
+
+### Cache Status
+**GET** `/news/cache-status`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Description:** Returns current cache status and timing information.
+
+**Response:**
+```json
+{
+  "cache_valid": true,
+  "last_updated": "2025-11-13T10:00:00Z",
+  "next_refresh": "2025-11-13T10:10:00Z",
+  "cache_duration_minutes": 10,
+  "has_cached_data": true,
+  "cached_articles_count": 15
+}
+```
+
+### Manual Cache Refresh
+**POST** `/news/refresh-cache`
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Description:** Manually refreshes the news cache (admin function).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "News cache refreshed successfully",
+  "articles_count": 15,
+  "updated_at": "2025-11-13T10:05:00Z"
+}
+```
+
+**Features:**
+- **Student-Focused Content**: Filters tech news for student relevance
+- **Smart Caching**: 10-minute intervals to optimize API usage
+- **Rate Limit Safe**: Stays within GNews API free tier (100 requests/day)
+- **Fallback System**: Returns cached data if API fails

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440  # 24 hours (24 * 60 minutes) for development
     openai_api_key: str = ""  # Set this in .env file - NEVER hardcode API keys!
+    gnews_api_key: str = ""  # Set this in .env file for GNews API access
 
     class Config:
         env_file = ".env"
