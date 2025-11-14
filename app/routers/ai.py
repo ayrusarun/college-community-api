@@ -54,6 +54,23 @@ class KnowledgeSearchQuery(BaseModel):
     limit: int = 5
 
 
+class ContentRewriteRequest(BaseModel):
+    content: str
+    style: Optional[str] = "professional"  # "professional", "casual", "formal", "engaging"
+    tone: Optional[str] = "friendly"      # "friendly", "neutral", "enthusiastic", "informative"
+    max_length: Optional[int] = None      # Optional character limit
+
+
+class ContentRewriteResponse(BaseModel):
+    original_content: str
+    rewritten_content: str
+    style: str
+    tone: str
+    improvements: List[str]
+    word_count_before: int
+    word_count_after: int
+
+
 @router.post("/ask", response_model=AIResponse)
 async def ask_ai(
     query: AIQuery,
@@ -311,6 +328,123 @@ async def get_conversations(
             for conv in conversations
         ]
     }
+
+
+@router.post("/rewrite", response_model=ContentRewriteResponse)
+async def rewrite_content(
+    rewrite_request: ContentRewriteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Rewrite content for community posts using AI.
+    Improves clarity, engagement, and style while maintaining the original message.
+    """
+    try:
+        if not rewrite_request.content.strip():
+            raise HTTPException(status_code=400, detail="Content cannot be empty")
+        
+        # Get AI service
+        ai_service = get_ai_service()
+        
+        # Get college context for personalization
+        college = db.query(College).filter(College.id == current_user.college_id).first()
+        college_context = f"for {college.name}" if college else ""
+        
+        # Create rewriting prompt based on style and tone
+        style_instructions = {
+            "professional": "Use professional language suitable for academic environments",
+            "casual": "Use friendly, conversational language that's easy to read",
+            "formal": "Use formal, academic language with proper structure",
+            "engaging": "Use engaging, energetic language that captures attention"
+        }
+        
+        tone_instructions = {
+            "friendly": "Maintain a warm, approachable tone",
+            "neutral": "Keep a balanced, objective tone",
+            "enthusiastic": "Use an excited, positive tone",
+            "informative": "Focus on being clear and educational"
+        }
+        
+        # Build the rewriting prompt
+        prompt = f"""Please rewrite the following content for a college community post {college_context}. 
+
+Style: {style_instructions.get(rewrite_request.style, style_instructions['professional'])}
+Tone: {tone_instructions.get(rewrite_request.tone, tone_instructions['friendly'])}
+
+Requirements:
+- Maintain the original meaning and key information
+- Improve clarity and readability
+- Make it suitable for a college community social platform
+- Keep it engaging for students and faculty
+{"- Keep it under " + str(rewrite_request.max_length) + " characters" if rewrite_request.max_length else ""}
+
+Original Content:
+{rewrite_request.content}
+
+Please provide:
+1. The rewritten content
+2. A brief list of improvements made (max 3 points)
+
+Format your response as:
+REWRITTEN CONTENT:
+[your rewritten version]
+
+IMPROVEMENTS:
+- [improvement 1]
+- [improvement 2]  
+- [improvement 3]"""
+
+        # Get rewritten content from AI
+        ai_response = ai_service.generate_simple_response(prompt)
+        
+        # Parse the AI response
+        parts = ai_response.split("IMPROVEMENTS:")
+        if len(parts) >= 2:
+            rewritten_content = parts[0].replace("REWRITTEN CONTENT:", "").strip()
+            improvements_text = parts[1].strip()
+            improvements = [
+                imp.strip("- ").strip() 
+                for imp in improvements_text.split("\n") 
+                if imp.strip() and imp.strip().startswith("-")
+            ][:3]  # Max 3 improvements
+        else:
+            # Fallback if parsing fails
+            rewritten_content = ai_response.strip()
+            improvements = ["Content has been improved for better clarity and engagement"]
+        
+        # Apply character limit if specified
+        if rewrite_request.max_length and len(rewritten_content) > rewrite_request.max_length:
+            rewritten_content = rewritten_content[:rewrite_request.max_length].rsplit(' ', 1)[0] + "..."
+        
+        # Calculate word counts
+        original_words = len(rewrite_request.content.split())
+        rewritten_words = len(rewritten_content.split())
+        
+        # Save rewrite activity (optional - for analytics)
+        conversation = AIConversation(
+            user_id=current_user.id,
+            college_id=current_user.college_id,
+            query=f"Content rewrite - Style: {rewrite_request.style}, Tone: {rewrite_request.tone}",
+            response=rewritten_content,
+            context_docs=[]
+        )
+        db.add(conversation)
+        db.commit()
+        
+        return ContentRewriteResponse(
+            original_content=rewrite_request.content,
+            rewritten_content=rewritten_content,
+            style=rewrite_request.style,
+            tone=rewrite_request.tone,
+            improvements=improvements,
+            word_count_before=original_words,
+            word_count_after=rewritten_words
+        )
+    
+    except Exception as e:
+        logger.error(f"Error in content rewriting: {e}")
+        raise HTTPException(status_code=500, detail=f"Rewrite error: {str(e)}")
 
 
 @router.get("/stats")

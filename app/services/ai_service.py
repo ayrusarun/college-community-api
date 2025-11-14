@@ -441,6 +441,24 @@ class AIService:
             logger.error(f"Error generating AI response: {e}")
             return "I'm sorry, I encountered an error while processing your question. Please try again later."
     
+    def generate_simple_response(self, prompt: str) -> str:
+        """Generate a simple AI response without context retrieval"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.chat_model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content
+        
+        except Exception as e:
+            logger.error(f"Error generating simple AI response: {e}")
+            return "I'm sorry, I encountered an error while processing your request. Please try again later."
+    
     def remove_from_index(self, doc_type: str, doc_id: int):
         """Remove a document from the index"""
         doc_key = f"{doc_type}_{doc_id}"
