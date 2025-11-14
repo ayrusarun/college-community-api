@@ -594,7 +594,7 @@ async def upload_post_image(
     return {
         "id": db_file.id,
         "filename": unique_filename,
-        "original_filename": file.original_filename,
+        "original_filename": file.filename,
         "file_size": len(content),
         "mime_type": mime_type,
         "public_url": public_url,
