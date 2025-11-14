@@ -52,6 +52,12 @@ class User(Base):
     given_rewards = relationship("Reward", foreign_keys="Reward.giver_id", back_populates="giver")
     received_rewards = relationship("Reward", foreign_keys="Reward.receiver_id", back_populates="receiver")
     reward_points = relationship("RewardPoint", back_populates="user")
+    
+    # Store relationships
+    cart = relationship("Cart", back_populates="user", uselist=False)
+    orders = relationship("Order", back_populates="user")
+    point_transactions = relationship("PointTransaction", back_populates="user")
+    wishlist_items = relationship("WishlistItem", back_populates="user")
 
 
 class PostType(enum.Enum):
@@ -220,3 +226,168 @@ class Alert(Base):
     creator = relationship("User", foreign_keys=[created_by])
     post = relationship("Post")
     college = relationship("College")
+
+
+# ==================== REWARDS STORE MODELS ====================
+
+class ProductCategory(enum.Enum):
+    ELECTRONICS = "ELECTRONICS"
+    BOOKS = "BOOKS"
+    STATIONERY = "STATIONERY"
+    APPAREL = "APPAREL"
+    FOOD_VOUCHERS = "FOOD_VOUCHERS"
+    GIFT_CARDS = "GIFT_CARDS"
+    EXPERIENCES = "EXPERIENCES"
+    SOFTWARE = "SOFTWARE"
+    OTHER = "OTHER"
+
+
+class ProductStatus(enum.Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE" 
+    OUT_OF_STOCK = "OUT_OF_STOCK"
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(Enum(ProductCategory), nullable=False)
+    points_required = Column(Integer, nullable=False)  # Points needed to redeem
+    original_price = Column(Numeric(10, 2), nullable=True)  # Original price for reference
+    stock_quantity = Column(Integer, default=0, nullable=False)
+    max_quantity_per_user = Column(Integer, default=1, nullable=False)  # Max per user per order
+    status = Column(Enum(ProductStatus), default=ProductStatus.ACTIVE, nullable=False)
+    image_url = Column(String(500), nullable=True)
+    brand = Column(String(100), nullable=True)
+    specifications = Column(JSON, nullable=True)  # JSON field for product specs
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    college = relationship("College")
+    creator = relationship("User", foreign_keys=[created_by])
+    cart_items = relationship("CartItem", back_populates="product")
+    order_items = relationship("OrderItem", back_populates="product")
+    wishlists = relationship("WishlistItem", back_populates="product")
+
+
+class OrderStatus(enum.Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    PROCESSING = "PROCESSING"
+    READY_FOR_PICKUP = "READY_FOR_PICKUP"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    REFUNDED = "REFUNDED"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String(50), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    total_points = Column(Integer, nullable=False)
+    total_items = Column(Integer, nullable=False)
+    status = Column(Enum(OrderStatus), default=OrderStatus.PENDING, nullable=False)
+    notes = Column(Text, nullable=True)  # Admin notes or special instructions
+    pickup_location = Column(String(255), nullable=True)  # Where to pickup items
+    estimated_pickup_date = Column(DateTime, nullable=True)
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="orders")
+    college = relationship("College")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    points_per_item = Column(Integer, nullable=False)  # Points at time of order
+    total_points = Column(Integer, nullable=False)  # quantity * points_per_item
+    product_name = Column(String(255), nullable=False)  # Store product name at time of order
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product", back_populates="order_items")
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="cart")
+    college = relationship("College")
+    items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cart_id = Column(Integer, ForeignKey("carts.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    cart = relationship("Cart", back_populates="items")
+    product = relationship("Product", back_populates="cart_items")
+
+
+class PointTransaction(Base):
+    __tablename__ = "point_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    transaction_type = Column(String(50), nullable=False)  # "EARNED", "SPENT", "REFUNDED"
+    points = Column(Integer, nullable=False)  # Positive for earned, negative for spent
+    balance_after = Column(Integer, nullable=False)  # Balance after this transaction
+    description = Column(String(500), nullable=False)
+    reference_type = Column(String(50), nullable=True)  # "order", "reward", "manual"
+    reference_id = Column(Integer, nullable=True)  # Order ID, Reward ID, etc.
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationships
+    user = relationship("User", back_populates="point_transactions")
+    college = relationship("College")
+
+
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="wishlist_items")
+    product = relationship("Product", back_populates="wishlists")
+    college = relationship("College")
+
+    # Ensure unique combination of user and product
+    __table_args__ = (
+        {"extend_existing": True},
+    )

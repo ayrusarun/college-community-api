@@ -360,3 +360,213 @@ class PostAlertCreate(BaseModel):
     message: str
     alert_type: AlertType = AlertType.ANNOUNCEMENT
     expires_at: Optional[datetime] = None
+
+
+# ==================== REWARDS STORE SCHEMAS ====================
+
+from ..models.models import ProductCategory, ProductStatus, OrderStatus
+
+# Product Schemas
+class ProductBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: ProductCategory
+    points_required: int
+    original_price: Optional[float] = None
+    stock_quantity: int = 0
+    max_quantity_per_user: int = 1
+    image_url: Optional[str] = None
+    brand: Optional[str] = None
+    specifications: Optional[Dict[str, Any]] = None
+
+
+class ProductCreate(ProductBase):
+    pass
+
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[ProductCategory] = None
+    points_required: Optional[int] = None
+    original_price: Optional[float] = None
+    stock_quantity: Optional[int] = None
+    max_quantity_per_user: Optional[int] = None
+    status: Optional[ProductStatus] = None
+    image_url: Optional[str] = None
+    brand: Optional[str] = None
+    specifications: Optional[Dict[str, Any]] = None
+
+
+class ProductResponse(ProductBase):
+    id: int
+    status: ProductStatus
+    college_id: int
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+    creator_name: Optional[str] = None
+    in_stock: bool
+    can_purchase: bool
+
+    class Config:
+        from_attributes = True
+
+
+class ProductListResponse(BaseModel):
+    products: List[ProductResponse]
+    total_count: int
+    page: int
+    page_size: int
+
+
+# Cart Schemas
+class CartItemAdd(BaseModel):
+    product_id: int
+    quantity: int = 1
+
+
+class CartItemUpdate(BaseModel):
+    quantity: int
+
+
+class CartItemResponse(BaseModel):
+    id: int
+    product_id: int
+    quantity: int
+    added_at: datetime
+    product_name: str
+    product_points: int
+    total_points: int
+    product_image: Optional[str] = None
+    product_stock: int
+    max_quantity_allowed: int
+
+    class Config:
+        from_attributes = True
+
+
+class CartResponse(BaseModel):
+    id: int
+    items: List[CartItemResponse]
+    total_items: int
+    total_points: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Order Schemas
+class CheckoutRequest(BaseModel):
+    notes: Optional[str] = None
+
+
+class OrderItemResponse(BaseModel):
+    id: int
+    product_id: int
+    product_name: str
+    quantity: int
+    points_per_item: int
+    total_points: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OrderResponse(BaseModel):
+    id: int
+    order_number: str
+    user_id: int
+    total_points: int
+    total_items: int
+    status: OrderStatus
+    notes: Optional[str] = None
+    pickup_location: Optional[str] = None
+    estimated_pickup_date: Optional[datetime] = None
+    items: List[OrderItemResponse]
+    created_at: datetime
+    updated_at: datetime
+    user_name: Optional[str] = None
+    status_display: str
+
+    class Config:
+        from_attributes = True
+
+
+class OrderListResponse(BaseModel):
+    orders: List[OrderResponse]
+    total_count: int
+    page: int
+    page_size: int
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
+    notes: Optional[str] = None
+    pickup_location: Optional[str] = None
+    estimated_pickup_date: Optional[datetime] = None
+
+
+# Balance & Transactions
+class PointTransactionResponse(BaseModel):
+    id: int
+    transaction_type: str
+    points: int
+    balance_after: int
+    description: str
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BalanceResponse(BaseModel):
+    current_balance: int
+    total_earned: int
+    total_spent: int
+    pending_orders_points: int
+    available_balance: int
+
+
+class BalanceHistoryResponse(BaseModel):
+    transactions: List[PointTransactionResponse]
+    balance_summary: BalanceResponse
+    total_count: int
+    page: int
+    page_size: int
+
+
+# Wishlist Schemas
+class WishlistAdd(BaseModel):
+    product_id: int
+
+
+class WishlistItemResponse(BaseModel):
+    id: int
+    product_id: int
+    product_name: str
+    product_points: int
+    product_image: Optional[str] = None
+    product_status: ProductStatus
+    added_at: datetime
+    in_stock: bool
+
+    class Config:
+        from_attributes = True
+
+
+class WishlistResponse(BaseModel):
+    items: List[WishlistItemResponse]
+    total_count: int
+
+
+# Category Response
+class CategoryResponse(BaseModel):
+    category: ProductCategory
+    display_name: str
+    product_count: int

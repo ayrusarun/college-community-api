@@ -406,10 +406,60 @@ def init_db():
     print(f"   • Comprehensive reward system")
     print(f"   • Rich post engagement tracking")
     
+    print(f"\n🏪 Store System Setup:")
+    print(f"   • Run 'python migrate_store.py' to add rewards store")
+    print(f"   • Includes products, cart, orders, and wishlist")
+    print(f"   • Safe to run multiple times")
+    
     print(f"\n🚀 Ready for testing and Flutter development!")
     
     db.close()
 
 
-if __name__ == "__main__":
+def setup_complete_system():
+    """Setup complete system with basic data + store"""
+    print("🚀 Setting up complete college community system...")
+    print("=" * 60)
+    
+    # Initialize basic system
     init_db()
+    
+    print("\n🏪 Setting up rewards store...")
+    
+    # Try to import and run store migration
+    try:
+        import subprocess
+        import os
+        
+        # Run the store migration script
+        script_path = os.path.join(os.path.dirname(__file__), "migrate_store.py")
+        result = subprocess.run(["python", script_path], 
+                              capture_output=True, text=True, cwd=os.path.dirname(__file__))
+        
+        if result.returncode == 0:
+            print("✅ Store migration completed successfully!")
+            print(result.stdout)
+        else:
+            print("⚠️ Store migration encountered issues:")
+            print(result.stderr)
+            print("\nYou can run 'python migrate_store.py' manually later.")
+    
+    except Exception as e:
+        print(f"⚠️ Could not auto-run store migration: {e}")
+        print("Please run 'python migrate_store.py' manually to complete setup.")
+    
+    print(f"\n🎉 Complete system setup finished!")
+    print(f"{'='*60}")
+    print(f"📋 Next steps:")
+    print(f"   1. Start the API: docker-compose up")
+    print(f"   2. Test endpoints at http://localhost:8000/docs")
+    print(f"   3. Build your Flutter app!")
+
+
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--complete":
+        setup_complete_system()
+    else:
+        init_db()
