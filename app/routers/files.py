@@ -329,6 +329,44 @@ async def download_file(
     )
 
 
+@router.get("/{file_id}/view")
+async def view_file(
+    file_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """View/serve a file directly (for images, videos, etc.) - authenticated access"""
+    
+    # Get file (must be from user's college)
+    file = db.query(FileModel).filter(
+        and_(
+            FileModel.id == file_id,
+            FileModel.college_id == current_user.college_id
+        )
+    ).first()
+    
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Check if file exists on disk
+    if not os.path.exists(file.file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    
+    # Increment view count (separate from downloads)
+    metadata = file.upload_metadata.copy()
+    metadata["views"] = metadata.get("views", 0) + 1
+    file.upload_metadata = metadata
+    db.commit()
+    
+    return FastAPIFileResponse(
+        path=file.file_path,
+        media_type=file.mime_type
+    )
+
+
+
+
+
 @router.put("/{file_id}", response_model=FileResponse)
 async def update_file(
     file_id: int,
@@ -477,3 +515,147 @@ async def get_file_stats(
         "departments": {dept: count for dept, count in dept_stats},
         "file_types": {file_type.value: count for file_type, count in type_stats}
     }
+
+
+# ==================== PUBLIC POST IMAGE ENDPOINTS ====================
+# These endpoints are specifically for post images and don't require authentication
+# to make frontend integration easier for social media features
+
+@router.post("/posts/upload-image")
+async def upload_post_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload an image for posts (authenticated upload, but public access to view)"""
+    
+    # Validate file
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Check if it's an image
+    file_ext = Path(file.filename).suffix.lower()
+    image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
+    if file_ext not in image_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Only image files allowed. Supported: {', '.join(image_extensions)}"
+        )
+    
+    # Read file content to check size
+    content = await file.read()
+    max_image_size = 10 * 1024 * 1024  # 10MB for images
+    if len(content) > max_image_size:
+        raise HTTPException(
+            status_code=413, 
+            detail=f"Image too large. Maximum size: {max_image_size // (1024*1024)}MB"
+        )
+    
+    # Generate unique filename
+    unique_filename = generate_unique_filename(file.filename)
+    
+    # Create posts-specific directory
+    posts_dir = os.path.join(UPLOAD_DIR, "posts")
+    os.makedirs(posts_dir, exist_ok=True)
+    file_path = os.path.join(posts_dir, unique_filename)
+    
+    # Save file to disk
+    try:
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    
+    # Determine MIME type
+    mime_type = file.content_type or mimetypes.guess_type(file.filename)[0] or "image/jpeg"
+    
+    # Create file record in database with special marking for post images
+    db_file = FileModel(
+        filename=unique_filename,
+        original_filename=file.filename,
+        file_path=file_path,
+        file_size=len(content),
+        file_type=FileTypeEnum.IMAGE,
+        mime_type=mime_type,
+        description="Post image",
+        department="posts",  # Special department for post images
+        college_id=current_user.college_id,
+        uploaded_by=current_user.id,
+        upload_metadata={"type": "post_image", "public": True, "views": 0}
+    )
+    
+    db.add(db_file)
+    db.commit()
+    db.refresh(db_file)
+    
+    # Return response with public URL
+    public_url = f"/files/posts/image/{unique_filename}"
+    
+    return {
+        "id": db_file.id,
+        "filename": unique_filename,
+        "original_filename": file.original_filename,
+        "file_size": len(content),
+        "mime_type": mime_type,
+        "public_url": public_url,
+        "full_url": f"http://195.35.20.155:8000{public_url}",  # Adjust base URL as needed
+        "message": "Post image uploaded successfully"
+    }
+
+
+@router.get("/posts/image/{filename}")
+async def serve_post_image(filename: str):
+    """Serve post images publicly (NO authentication required)"""
+    
+    # Construct file path
+    file_path = os.path.join(UPLOAD_DIR, "posts", filename)
+    
+    # Check if file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Get MIME type
+    mime_type = mimetypes.guess_type(filename)[0] or "image/jpeg"
+    
+    return FastAPIFileResponse(
+        path=file_path,
+        media_type=mime_type
+    )
+
+
+@router.delete("/posts/image/{filename}")
+async def delete_post_image(
+    filename: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a post image (authenticated - only by uploader)"""
+    
+    # Find file in database
+    file = db.query(FileModel).filter(
+        and_(
+            FileModel.filename == filename,
+            FileModel.department == "posts",
+            FileModel.college_id == current_user.college_id
+        )
+    ).first()
+    
+    if not file:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Check if user is the uploader
+    if file.uploaded_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this image")
+    
+    # Delete file from disk
+    try:
+        if os.path.exists(file.file_path):
+            os.remove(file.file_path)
+    except Exception as e:
+        print(f"Error deleting file from disk: {e}")
+    
+    # Delete from database
+    db.delete(file)
+    db.commit()
+    
+    return {"message": "Post image deleted successfully"}
