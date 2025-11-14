@@ -403,8 +403,8 @@ class ProductResponse(ProductBase):
     status: ProductStatus
     college_id: int
     created_by: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     creator_name: Optional[str] = None
     in_stock: bool
     can_purchase: bool
