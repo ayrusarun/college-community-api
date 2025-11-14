@@ -50,24 +50,71 @@ docker-compose up --build
 3. The API will be available at `http://localhost:8000`
 4. PostgreSQL database will be available at `localhost:5432`
 
-### Initialize Database with Sample Data
+## Database Setup
+
+### Fresh Installation (First Time Setup)
+
+For a completely new database setup:
 
 ```bash
-docker-compose exec web python init_db.py
+# Start the containers
+docker-compose up --build -d
+
+# Initialize database with sample data
+docker-compose exec web python db_setup.py
 ```
 
-This creates sample colleges and users:
-- **Stanford University** (slug: stanford)
-  - Username: `john_doe`, Password: `password123`
-  - Username: `sarah_johnson`, Password: `password123`
-- **MIT** (slug: mit)
-  - Username: `jane_smith`, Password: `password123`
+This creates:
+- **8 South Indian Colleges** including IIT Madras, IISc Bangalore, NIT Trichy, etc.
+- **34 Sample Users** with realistic South Indian names and departments
+- **12 Sample Posts** with college-specific content
+- **Complete Store System** with products, cart, orders functionality
+- **Reward Points** system for all users
 
-Sample posts are created with:
-- **Image URLs** for rich media content
-- **Engagement metadata** (likes, comments, shares)
-- **Human-readable timestamps** (e.g., "2 hours ago")
-- **Author department information**
+### Migration System (Schema Updates)
+
+For existing databases or applying schema changes:
+
+```bash
+# Check migration status
+docker-compose exec web python db_setup.py --status
+
+# Apply pending migrations
+docker-compose exec web python db_setup.py --migrate
+
+# Create new migration
+docker-compose exec web python db_setup.py --create-migration "Add new feature"
+```
+
+### Legacy Methods (Still Supported)
+
+```bash
+# Basic database setup only (without store system)
+docker-compose exec web python init_db.py
+
+# Add store system separately
+docker-compose exec web python migrate_store.py
+```
+
+### Database Reset (⚠️ Development Only)
+
+```bash
+# WARNING: This deletes ALL data
+docker-compose exec web python db_setup.py --reset
+```
+
+### Sample Data Created
+
+**Colleges**: IIT Madras, IISc Bangalore, NIT Trichy, Anna University, University of Mysore, CUSAT, VIT Vellore, Amrita University
+
+**Sample Users** (Password: `password123`):
+- `arjun_cs` - Arjun Kumar (IIT Madras, Computer Science)
+- `priya_me` - Priya Reddy (IIT Madras, Mechanical Engineering)
+- `krishna_ece` - Krishna Nair (IIT Madras, Electronics & Communication)
+- `vishnu_ce` - Vishnu Sharma (IIT Madras, Civil Engineering)
+- And 30+ more across all colleges
+
+**Store Products**: Electronics, Books, Stationery, Gift Cards, Food Vouchers, Software subscriptions
 
 ## API Documentation
 
