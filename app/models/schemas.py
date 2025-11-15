@@ -69,6 +69,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class PasswordUpdateRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # Post schemas
 class PostBase(BaseModel):
     title: str
