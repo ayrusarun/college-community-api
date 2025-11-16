@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ..core.database import get_db
 from ..core.security import get_current_user
+from ..core.rbac import PermissionChecker, has_permission
 from ..models.models import File as FileModel, User, College, FileType as FileTypeEnum, IndexingTask
 from ..models.schemas import (
     FileUploadResponse, FileResponse, FileUpdate, FileListResponse, 
@@ -127,7 +128,8 @@ async def upload_file(
     folder_path: Optional[str] = Form("/"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("write:files"))  # ✅ RBAC Protection
 ):
     """Upload a file to the system with optional folder path"""
     
@@ -244,7 +246,8 @@ async def upload_file(
 async def create_folder(
     folder_data: FolderCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("write:folders"))  # ✅ RBAC Protection
 ):
     """Create a new folder"""
     
@@ -304,7 +307,8 @@ async def create_folder(
 async def browse_folder(
     folder_path: str = Query("/", description="Folder path to browse"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:folders"))  # ✅ RBAC Protection
 ) -> FolderContentsResponse:
     """Browse folder contents with hierarchical structure"""
     
@@ -592,7 +596,8 @@ async def get_files(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:files"))  # ✅ RBAC Protection
 ):
     """Get files with filtering and pagination (college-specific)"""
     
@@ -793,7 +798,8 @@ async def update_file(
     file_id: int,
     file_update: FileUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("update:files"))  # ✅ RBAC Protection
 ):
     """Update file metadata (only by the uploader or admin)"""
     
@@ -808,9 +814,13 @@ async def update_file(
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Check permissions (only uploader can update)
+    # Check ownership or manage permission
     if file.uploaded_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this file")
+        if not has_permission(current_user, "manage:files", db):
+            raise HTTPException(
+                status_code=403,
+                detail="You can only update your own files"
+            )
     
     # Update fields
     if file_update.description is not None:
@@ -846,7 +856,8 @@ async def update_file(
 async def delete_file(
     file_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("delete:files"))  # ✅ RBAC Protection
 ):
     """Delete a file (only by the uploader or admin)"""
     
@@ -861,8 +872,13 @@ async def delete_file(
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Check permissions (only uploader can delete)
+    # Check ownership or manage permission
     if file.uploaded_by != current_user.id:
+        if not has_permission(current_user, "manage:files", db):
+            raise HTTPException(
+                status_code=403,
+                detail="You can only delete your own files"
+            )
         raise HTTPException(status_code=403, detail="Not authorized to delete this file")
     
     # Delete file from disk

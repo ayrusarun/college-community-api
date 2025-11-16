@@ -178,10 +178,11 @@ logs/
 *.log
 backup_*.sql
 data_export_*.json
+vector_db/
 
 # Docker
 .dockerignore
 
 # Temporary files
 *.tmp
-*.temp
+*.temp*.pyc

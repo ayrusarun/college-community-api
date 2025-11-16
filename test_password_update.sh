@@ -39,7 +39,7 @@ UPDATE_RESPONSE=$(curl -s -X PUT "$BASE_URL/auth/update-password" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
     "current_password": "password111",
-    "new_password": "password222"
+    "new_password": "p222"
   }')
 
 echo "Update Response: $UPDATE_RESPONSE"

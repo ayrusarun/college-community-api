@@ -7,6 +7,12 @@ import enum
 Base = declarative_base()
 
 
+class UserRole(enum.Enum):
+    ADMIN = "admin"
+    STAFF = "staff"
+    STUDENT = "student"
+
+
 class RewardType(enum.Enum):
     HELPFUL_POST = "HELPFUL_POST"
     ACADEMIC_EXCELLENCE = "ACADEMIC_EXCELLENCE"
@@ -42,6 +48,12 @@ class User(Base):
     class_name = Column(String(50), nullable=False)
     academic_year = Column(String(20), nullable=False)
     college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    
+    # RBAC fields
+    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), 
+                  default=UserRole.STUDENT, nullable=False, index=True)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -394,6 +406,60 @@ class WishlistItem(Base):
     college = relationship("College")
 
     # Ensure unique combination of user and product
+    __table_args__ = (
+        {"extend_existing": True},
+    )
+
+
+# ==================== RBAC MODELS ====================
+
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)  # e.g., 'read:posts'
+    resource = Column(String(50), nullable=False, index=True)  # e.g., 'posts', 'files'
+    action = Column(String(50), nullable=False)  # e.g., 'read', 'write', 'delete'
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), 
+                  nullable=False, index=True)
+    permission_id = Column(Integer, ForeignKey("permissions.id"), nullable=False)
+    college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    permission = relationship("Permission")
+    college = relationship("College")
+
+    # Ensure unique combination
+    __table_args__ = (
+        {"extend_existing": True},
+    )
+
+
+class UserCustomPermission(Base):
+    __tablename__ = "user_custom_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    permission_id = Column(Integer, ForeignKey("permissions.id"), nullable=False)
+    granted = Column(Boolean, default=True, nullable=False)  # TRUE = grant, FALSE = revoke
+    created_at = Column(DateTime, default=datetime.utcnow)
+    granted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    permission = relationship("Permission")
+    granter = relationship("User", foreign_keys=[granted_by])
+
+    # Ensure unique combination
     __table_args__ = (
         {"extend_existing": True},
     )

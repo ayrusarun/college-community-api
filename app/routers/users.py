@@ -4,6 +4,7 @@ from typing import List
 
 from ..core.database import get_db
 from ..core.security import get_password_hash
+from ..core.rbac import get_user_permissions
 from ..models.models import User, College
 from ..models.schemas import UserCreate, UserResponse, UserProfile
 from ..routers.auth import get_current_user
@@ -63,6 +64,7 @@ async def get_my_profile(
     db: Session = Depends(get_db)
 ):
     college = db.query(College).filter(College.id == current_user.college_id).first()
+    permissions = list(get_user_permissions(current_user, db))
     
     return UserProfile(
         id=current_user.id,
@@ -73,10 +75,13 @@ async def get_my_profile(
         class_name=current_user.class_name,
         academic_year=current_user.academic_year,
         college_id=current_user.college_id,
+        role=current_user.role.value,  # ✅ Add role
+        is_active=current_user.is_active,  # ✅ Add is_active
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         college_name=college.name,
-        college_slug=college.slug
+        college_slug=college.slug,
+        permissions=sorted(permissions)  # ✅ Add permissions
     )
 
 

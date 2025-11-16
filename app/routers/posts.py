@@ -6,6 +6,7 @@ from datetime import datetime
 
 from ..core.database import get_db
 from ..core.utils import time_ago
+from ..core.rbac import PermissionChecker, has_permission
 from ..models.models import Post, User, PostType, IndexingTask, Alert
 from ..models.schemas import PostCreate, PostResponse, PostUpdate, PostMetadataUpdate, PostAlertCreate, AlertResponse
 from ..routers.auth import get_current_user
@@ -19,7 +20,8 @@ async def create_post(
     post: PostCreate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("write:posts"))  # ✅ RBAC Protection
 ):
     # Check content moderation
     is_inappropriate, reason = await moderation_service.check_content(
@@ -93,7 +95,8 @@ async def get_posts(
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:posts"))  # ✅ RBAC Protection
 ):
     # Define priority order for post types
     priority_order = case(
@@ -141,7 +144,8 @@ async def get_posts(
 async def get_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:posts"))  # ✅ RBAC Protection
 ):
     post_query = db.query(Post, User.full_name, User.department).join(
         User, Post.author_id == User.id
@@ -181,7 +185,8 @@ async def get_posts_by_type(
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:posts"))  # ✅ RBAC Protection
 ):
     posts = db.query(Post, User.full_name, User.department).join(
         User, Post.author_id == User.id
@@ -219,20 +224,28 @@ async def update_post(
     post_id: int,
     post_update: PostUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("update:posts"))  # ✅ RBAC Protection
 ):
-    # Get the post and verify ownership
+    # Get the post and verify ownership OR manage permission
     post = db.query(Post).filter(
         Post.id == post_id,
-        Post.author_id == current_user.id,
         Post.college_id == current_user.college_id
     ).first()
     
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Post not found or you don't have permission to edit it"
+            detail="Post not found"
         )
+    
+    # Check ownership or manage permission
+    if post.author_id != current_user.id:
+        if not has_permission(current_user, "manage:posts", db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit your own posts"
+            )
     
     # Prepare updated content for moderation check
     updated_title = post_update.title if post_update.title is not None else post.title
@@ -287,7 +300,8 @@ async def update_post_metadata(
     post_id: int,
     metadata_update: PostMetadataUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("update:posts"))  # ✅ RBAC Protection
 ):
     # Get the post (any user can like/comment, not just the author)
     post_query = db.query(Post, User.full_name, User.department).join(
@@ -340,7 +354,8 @@ async def update_post_metadata(
 async def like_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("update:posts"))  # ✅ RBAC Protection
 ):
     post = db.query(Post).filter(
         Post.id == post_id,
@@ -368,7 +383,8 @@ async def create_post_alert(
     post_id: int,
     alert_data: PostAlertCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("write:alerts"))  # ✅ RBAC Protection
 ):
     """Create an alert for a specific post"""
     

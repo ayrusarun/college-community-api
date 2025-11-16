@@ -5,6 +5,7 @@ from typing import List
 
 from ..core.database import get_db
 from ..core.utils import time_ago
+from ..core.rbac import PermissionChecker
 from ..models.models import Reward, RewardPoint, User, Post, RewardType
 from ..models.schemas import (
     RewardCreate, RewardResponse, RewardPointsResponse, 
@@ -19,7 +20,8 @@ router = APIRouter(prefix="/rewards", tags=["rewards"])
 async def give_reward(
     reward: RewardCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("write:rewards"))  # ✅ RBAC Protection
 ):
     """Give a reward to another user"""
     
@@ -119,7 +121,8 @@ async def get_rewards(
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:rewards"))  # ✅ RBAC Protection
 ):
     """Get all rewards in the college (recent first)"""
     
@@ -176,7 +179,8 @@ async def get_rewards(
 @router.get("/me", response_model=RewardSummaryResponse)
 async def get_my_rewards(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(PermissionChecker("read:rewards"))  # ✅ RBAC Protection
 ):
     """Get current user's reward summary"""
     

@@ -6,6 +6,7 @@ from datetime import timedelta
 from ..core.database import get_db
 from ..core.security import verify_password, create_access_token, verify_token, get_current_user, get_password_hash
 from ..core.config import settings
+from ..core.rbac import get_user_permissions
 from ..models.models import User, College
 from ..models.schemas import Token, LoginRequest, PasswordUpdateRequest
 
@@ -36,6 +37,14 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     # Get college information for tenant details
     college = db.query(College).filter(College.id == user.college_id).first()
     
@@ -45,7 +54,8 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "sub": user.username,
             "college_slug": college.slug,
             "college_name": college.name,
-            "user_id": user.id
+            "user_id": user.id,
+            "role": user.role.value  # Include role in token
         }, 
         expires_delta=access_token_expires
     )
@@ -63,11 +73,16 @@ async def logout(current_user: User = Depends(get_current_user)):
 @router.get("/me")
 async def get_current_user_info(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     college = db.query(College).filter(College.id == current_user.college_id).first()
+    permissions = list(get_user_permissions(current_user, db))
+    
     return {
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
         "full_name": current_user.full_name,
+        "role": current_user.role.value,
+        "is_active": current_user.is_active,
+        "permissions": sorted(permissions),
         "college": {
             "id": college.id,
             "name": college.name,

@@ -41,6 +41,8 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     college_id: int
+    role: str  # 'admin', 'staff', 'student'
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 
@@ -51,6 +53,7 @@ class UserResponse(UserBase):
 class UserProfile(UserResponse):
     college_name: str
     college_slug: str
+    permissions: Optional[List[str]] = None  # List of user permissions
 
 
 # Auth schemas
