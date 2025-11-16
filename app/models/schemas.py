@@ -219,6 +219,10 @@ class FileUploadResponse(BaseModel):
     upload_metadata: Dict[str, Any]
     created_at: datetime
     
+    # Folder support
+    folder_path: str = "/"
+    is_folder: bool = False
+    
     # Additional fields
     uploader_name: str
     college_name: str
@@ -234,6 +238,7 @@ class FileResponse(FileUploadResponse):
 
 class FileUpdate(BaseModel):
     description: Optional[str] = None
+    folder_path: Optional[str] = None
 
 
 class FileListResponse(BaseModel):
@@ -247,8 +252,42 @@ class FileSearchQuery(BaseModel):
     department: Optional[str] = None
     file_type: Optional[FileType] = None
     search_term: Optional[str] = None
+    folder_path: Optional[str] = None
     page: int = 1
     page_size: int = 20
+
+
+# Folder-specific schemas
+class FolderCreate(BaseModel):
+    name: str
+    parent_path: str = "/"
+    description: Optional[str] = None
+
+
+class FolderItem(BaseModel):
+    id: int
+    name: str
+    path: str
+    is_folder: bool
+    file_type: Optional[FileType] = None
+    file_size: int = 0
+    file_count: int = 0  # For folders, number of items inside
+    created_at: datetime
+    updated_at: datetime
+    uploader_name: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class FolderContentsResponse(BaseModel):
+    current_path: str
+    parent_path: Optional[str] = None
+    folders: List[FolderItem]
+    files: List[FolderItem]
+    total_items: int
+    breadcrumbs: List[Dict[str, str]]  # Path navigation breadcrumbs
 
 
 # AI schemas

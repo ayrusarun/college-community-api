@@ -142,6 +142,11 @@ class File(Base):
     mime_type = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     
+    # Folder support
+    folder_path = Column(String(1000), default="/", nullable=False, index=True)  # Virtual folder path
+    is_folder = Column(Boolean, default=False, nullable=False)  # True if this is a folder entry
+    parent_folder_id = Column(Integer, ForeignKey("files.id"), nullable=True)  # For hierarchical structure
+    
     # Categorization
     department = Column(String(100), nullable=False, index=True)
     college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False, index=True)
@@ -160,6 +165,7 @@ class File(Base):
     # Relationships
     college = relationship("College")
     uploader = relationship("User")
+    parent_folder = relationship("File", remote_side=[id], foreign_keys=[parent_folder_id])
 
 
 class AIConversation(Base):

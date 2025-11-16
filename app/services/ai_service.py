@@ -167,32 +167,84 @@ class AIService:
     def extract_text_from_file(self, file_path: str, mime_type: str) -> str:
         """Extract text content from various file types"""
         try:
-            if mime_type.startswith('text/') or file_path.endswith('.txt'):
+            file_extension = Path(file_path).suffix.lower()
+            
+            # Handle text files
+            if mime_type.startswith('text/') or file_extension in ['.txt', '.md', '.csv', '.json', '.xml']:
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     return f.read()
             
-            elif mime_type == 'application/pdf' and PDF_AVAILABLE:
-                text = ""
-                with open(file_path, 'rb') as f:
-                    reader = PyPDF2.PdfReader(f)
-                    for page in reader.pages:
-                        text += page.extract_text() + "\n"
-                return text
+            # Handle PDF files
+            elif file_extension == '.pdf' or mime_type == 'application/pdf':
+                if not PDF_AVAILABLE:
+                    logger.warning("PyPDF2 not available, cannot extract PDF text")
+                    return f"PDF File: {Path(file_path).name} (PyPDF2 not installed)"
+                
+                try:
+                    text = ""
+                    with open(file_path, 'rb') as f:
+                        reader = PyPDF2.PdfReader(f)
+                        num_pages = len(reader.pages)
+                        logger.info(f"Extracting text from PDF with {num_pages} pages: {file_path}")
+                        
+                        for page_num, page in enumerate(reader.pages):
+                            try:
+                                page_text = page.extract_text()
+                                if page_text:
+                                    text += f"\n--- Page {page_num + 1} ---\n"
+                                    text += page_text + "\n"
+                            except Exception as page_error:
+                                logger.warning(f"Error extracting text from page {page_num + 1}: {page_error}")
+                                continue
+                    
+                    if not text.strip():
+                        logger.warning(f"No text extracted from PDF: {file_path}")
+                        return f"PDF File: {Path(file_path).name} (No extractable text - may be scanned/image-based)"
+                    
+                    logger.info(f"Successfully extracted {len(text)} characters from PDF: {file_path}")
+                    return text
+                    
+                except Exception as pdf_error:
+                    logger.error(f"Error reading PDF {file_path}: {pdf_error}")
+                    return f"PDF File: {Path(file_path).name} (Error: {str(pdf_error)})"
             
-            elif mime_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] and DOCX_AVAILABLE:
-                doc = docx.Document(file_path)
-                text = ""
-                for paragraph in doc.paragraphs:
-                    text += paragraph.text + "\n"
-                return text
+            # Handle Word documents
+            elif file_extension in ['.docx', '.doc'] or mime_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                if not DOCX_AVAILABLE:
+                    logger.warning("python-docx not available, cannot extract DOCX text")
+                    return f"Word Document: {Path(file_path).name} (python-docx not installed)"
+                
+                try:
+                    doc = docx.Document(file_path)
+                    text = ""
+                    for paragraph in doc.paragraphs:
+                        text += paragraph.text + "\n"
+                    
+                    # Also extract text from tables
+                    for table in doc.tables:
+                        for row in table.rows:
+                            for cell in row.cells:
+                                text += cell.text + " "
+                            text += "\n"
+                    
+                    if not text.strip():
+                        return f"Word Document: {Path(file_path).name} (No extractable text)"
+                    
+                    logger.info(f"Successfully extracted {len(text)} characters from Word document: {file_path}")
+                    return text
+                    
+                except Exception as docx_error:
+                    logger.error(f"Error reading DOCX {file_path}: {docx_error}")
+                    return f"Word Document: {Path(file_path).name} (Error: {str(docx_error)})"
             
             else:
                 # For unsupported file types, return filename and basic info
-                return f"File: {Path(file_path).name}"
+                logger.info(f"Unsupported file type for text extraction: {mime_type} - {file_extension}")
+                return f"File: {Path(file_path).name} (Type: {mime_type})"
                 
         except Exception as e:
             logger.error(f"Error extracting text from {file_path}: {e}")
-            return f"File: {Path(file_path).name} (content extraction failed)"
+            return f"File: {Path(file_path).name} (Extraction failed: {str(e)})"
     
     def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using OpenAI"""
@@ -216,8 +268,14 @@ class AIService:
                    college_name: str, uploader_name: str) -> bool:
         """Index a file for AI search"""
         try:
+            logger.info(f"Starting indexing for file {file_id}: {original_filename} (type: {mime_type})")
+            
             # Extract text content
             content = self.extract_text_from_file(file_path, mime_type)
+            
+            if not content or len(content.strip()) < 10:
+                logger.warning(f"Minimal or no content extracted from {original_filename}, using metadata only")
+                content = f"This file may not have extractable text content."
             
             # Create comprehensive text for embedding
             full_text = f"""
@@ -226,10 +284,13 @@ class AIService:
             College: {college_name}
             Uploaded by: {uploader_name}
             Description: {description or 'No description'}
+            File Type: {mime_type}
             
             Content:
             {content}
             """
+            
+            logger.info(f"Generating embedding for file {file_id}, text length: {len(full_text)} characters")
             
             # Generate embedding
             embedding = self.generate_embedding(full_text.strip())
@@ -245,6 +306,7 @@ class AIService:
                 "description": description,
                 "mime_type": mime_type,
                 "content_preview": content[:500] + "..." if len(content) > 500 else content,
+                "content_length": len(content),
                 "indexed_at": datetime.utcnow().isoformat()
             }
             
@@ -252,11 +314,11 @@ class AIService:
             doc_id = f"file_{file_id}"
             self.vector_db.add_embedding(doc_id, embedding, metadata)
             
-            logger.info(f"Successfully indexed file: {original_filename}")
+            logger.info(f"Successfully indexed file {file_id}: {original_filename}")
             return True
             
         except Exception as e:
-            logger.error(f"Error indexing file {file_id}: {e}")
+            logger.error(f"Error indexing file {file_id} ({original_filename}): {e}", exc_info=True)
             return False
     
     def index_post(self, post_id: int, title: str, content: str, post_type: str,
