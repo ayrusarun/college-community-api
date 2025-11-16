@@ -8,9 +8,10 @@ from typing import List
 from pydantic import BaseModel
 
 from ..core.database import get_db
-from ..core.security import get_current_user
+from ..core.security import get_current_user, get_password_hash
 from ..core.rbac import RoleChecker, get_user_permissions
-from ..models.models import User, Permission, UserCustomPermission, UserRole
+from ..models.models import User, Permission, UserCustomPermission, UserRole, College
+from ..models.schemas import UserCreate, UserResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -40,6 +41,68 @@ class UserPermissionResponse(BaseModel):
 
 
 # Endpoints
+
+@router.post("/users", response_model=UserResponse, dependencies=[Depends(RoleChecker(UserRole.ADMIN, UserRole.STAFF))])
+async def create_user(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a new user
+    Requires: admin or staff role
+    """
+    # Check if username already exists
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Check if email already exists
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Check if college exists and matches current user's college (unless admin creating for another college)
+    college = db.query(College).filter(College.id == user.college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="College not found"
+        )
+    
+    # Staff can only create users in their own college
+    if current_user.role == UserRole.STAFF and user.college_id != current_user.college_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only create users in your own college"
+        )
+    
+    # Create new user
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name,
+        department=user.department,
+        class_name=user.class_name,
+        academic_year=user.academic_year,
+        college_id=user.college_id
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
+
+
 @router.get("/users", dependencies=[Depends(RoleChecker(UserRole.ADMIN, UserRole.STAFF))])
 async def list_users(
     db: Session = Depends(get_db),
@@ -159,6 +222,137 @@ async def update_user_status(
         "user_id": user.id,
         "username": user.username,
         "is_active": user.is_active
+    }
+
+
+@router.delete("/users/{user_id}", dependencies=[Depends(RoleChecker(UserRole.ADMIN))])
+async def delete_user(
+    user_id: int,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete a user permanently
+    Requires: admin role
+    
+    WARNING: This will permanently delete the user and all their associated data.
+    Consider deactivating the user instead using PUT /admin/users/{user_id}/status
+    
+    Use ?force=true to delete a user with existing posts, rewards, or other data.
+    Without force=true, users with existing content cannot be deleted.
+    """
+    from ..models.models import Post, Reward, RewardPoint, File, Alert, Order, AIConversation, Cart, WishlistItem, PointTransaction
+    
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.college_id == current_user.college_id
+    ).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Prevent admin from deleting themselves
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account"
+        )
+    
+    # Check for existing data
+    posts_count = db.query(Post).filter(Post.author_id == user_id).count()
+    rewards_given = db.query(Reward).filter(Reward.giver_id == user_id).count()
+    rewards_received = db.query(Reward).filter(Reward.receiver_id == user_id).count()
+    files_count = db.query(File).filter(File.uploaded_by == user_id).count()
+    alerts_created = db.query(Alert).filter(Alert.created_by == user_id).count()
+    orders_count = db.query(Order).filter(Order.user_id == user_id).count()
+    conversations_count = db.query(AIConversation).filter(AIConversation.user_id == user_id).count()
+    
+    total_data = posts_count + rewards_given + rewards_received + files_count + alerts_created + orders_count + conversations_count
+    
+    if total_data > 0 and not force:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Cannot delete user with existing data",
+                "message": "This user has existing posts, rewards, files, or other data. Use ?force=true to delete anyway, or deactivate the user instead.",
+                "user_data": {
+                    "posts": posts_count,
+                    "rewards_given": rewards_given,
+                    "rewards_received": rewards_received,
+                    "files": files_count,
+                    "alerts_created": alerts_created,
+                    "orders": orders_count,
+                    "conversations": conversations_count
+                },
+                "recommendation": f"Use PUT /admin/users/{user_id}/status with is_active=false to deactivate instead of deleting"
+            }
+        )
+    
+    username = user.username
+    full_name = user.full_name
+    
+    # If force=true, delete all related data
+    if force and total_data > 0:
+        # Delete reward points
+        db.query(RewardPoint).filter(RewardPoint.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete point transactions
+        db.query(PointTransaction).filter(PointTransaction.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete wishlist items
+        db.query(WishlistItem).filter(WishlistItem.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete cart
+        db.query(Cart).filter(Cart.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete posts
+        db.query(Post).filter(Post.author_id == user_id).delete(synchronize_session=False)
+        
+        # Delete rewards (both given and received)
+        db.query(Reward).filter(
+            (Reward.giver_id == user_id) | (Reward.receiver_id == user_id)
+        ).delete(synchronize_session=False)
+        
+        # Delete files
+        db.query(File).filter(File.uploaded_by == user_id).delete(synchronize_session=False)
+        
+        # Delete alerts created by user
+        db.query(Alert).filter(Alert.created_by == user_id).delete(synchronize_session=False)
+        
+        # Delete alerts for user
+        db.query(Alert).filter(Alert.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete orders
+        db.query(Order).filter(Order.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete AI conversations
+        db.query(AIConversation).filter(AIConversation.user_id == user_id).delete(synchronize_session=False)
+        
+        # Delete custom permissions
+        db.query(UserCustomPermission).filter(UserCustomPermission.user_id == user_id).delete(synchronize_session=False)
+    
+    # Delete the user
+    db.delete(user)
+    db.commit()
+    
+    return {
+        "message": "User deleted successfully",
+        "user_id": user_id,
+        "username": username,
+        "full_name": full_name,
+        "deleted_data": {
+            "posts": posts_count,
+            "rewards": rewards_given + rewards_received,
+            "files": files_count,
+            "alerts": alerts_created,
+            "orders": orders_count,
+            "conversations": conversations_count
+        } if force else None,
+        "warning": "This action is permanent and cannot be undone"
     }
 
 

@@ -3,59 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..core.database import get_db
-from ..core.security import get_password_hash
 from ..core.rbac import get_user_permissions
 from ..models.models import User, College
-from ..models.schemas import UserCreate, UserResponse, UserProfile
+from ..models.schemas import UserResponse, UserProfile
 from ..routers.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-@router.post("/", response_model=UserResponse)
-async def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if username already exists
-    db_user = db.query(User).filter(User.username == user.username).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    
-    # Check if email already exists
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Check if college exists
-    college = db.query(College).filter(College.id == user.college_id).first()
-    if not college:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="College not found"
-        )
-    
-    # Create new user
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        username=user.username,
-        email=user.email,
-        hashed_password=hashed_password,
-        full_name=user.full_name,
-        department=user.department,
-        class_name=user.class_name,
-        academic_year=user.academic_year,
-        college_id=user.college_id
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return db_user
 
 
 @router.get("/me", response_model=UserProfile)
