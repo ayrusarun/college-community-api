@@ -295,20 +295,15 @@ async def delete_user(
     username = user.username
     full_name = user.full_name
     
-    # If force=true, delete all related data
+    # Always delete these relationships first (they exist for all users)
+    db.query(RewardPoint).filter(RewardPoint.user_id == user_id).delete(synchronize_session=False)
+    db.query(PointTransaction).filter(PointTransaction.user_id == user_id).delete(synchronize_session=False)
+    db.query(WishlistItem).filter(WishlistItem.user_id == user_id).delete(synchronize_session=False)
+    db.query(Cart).filter(Cart.user_id == user_id).delete(synchronize_session=False)
+    db.query(UserCustomPermission).filter(UserCustomPermission.user_id == user_id).delete(synchronize_session=False)
+    
+    # If force=true, delete all content-related data
     if force and total_data > 0:
-        # Delete reward points
-        db.query(RewardPoint).filter(RewardPoint.user_id == user_id).delete(synchronize_session=False)
-        
-        # Delete point transactions
-        db.query(PointTransaction).filter(PointTransaction.user_id == user_id).delete(synchronize_session=False)
-        
-        # Delete wishlist items
-        db.query(WishlistItem).filter(WishlistItem.user_id == user_id).delete(synchronize_session=False)
-        
-        # Delete cart
-        db.query(Cart).filter(Cart.user_id == user_id).delete(synchronize_session=False)
-        
         # Delete posts
         db.query(Post).filter(Post.author_id == user_id).delete(synchronize_session=False)
         
@@ -331,9 +326,6 @@ async def delete_user(
         
         # Delete AI conversations
         db.query(AIConversation).filter(AIConversation.user_id == user_id).delete(synchronize_session=False)
-        
-        # Delete custom permissions
-        db.query(UserCustomPermission).filter(UserCustomPermission.user_id == user_id).delete(synchronize_session=False)
     
     # Delete the user
     db.delete(user)
