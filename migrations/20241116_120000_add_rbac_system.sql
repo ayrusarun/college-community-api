@@ -13,6 +13,11 @@ BEGIN
     ELSE
         RAISE NOTICE 'user_role enum type already exists, skipping';
     END IF;
+    
+    -- Drop the old userrole type if it exists (cleanup)
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+        RAISE NOTICE 'Found old userrole type, will be cleaned up after table fixes';
+    END IF;
 END $$;
 
 -- Add role column to users table
@@ -50,14 +55,49 @@ CREATE TABLE IF NOT EXISTS permissions (
 );
 
 -- Create role_permissions junction table
-CREATE TABLE IF NOT EXISTS role_permissions (
-    id SERIAL PRIMARY KEY,
-    role user_role NOT NULL,
-    permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
-    college_id INTEGER REFERENCES colleges(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(role, permission_id, college_id)
-);
+DO $$
+DECLARE
+    role_column_type TEXT;
+BEGIN
+    -- Check if table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'role_permissions') THEN
+        -- Check what type the role column uses
+        SELECT udt_name INTO role_column_type
+        FROM information_schema.columns
+        WHERE table_name = 'role_permissions' AND column_name = 'role';
+        
+        -- If it's using the wrong type (userrole), fix it
+        IF role_column_type = 'userrole' THEN
+            RAISE NOTICE 'Fixing role_permissions table to use user_role type';
+            DROP TABLE role_permissions CASCADE;
+            
+            CREATE TABLE role_permissions (
+                id SERIAL PRIMARY KEY,
+                role user_role NOT NULL,
+                permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
+                college_id INTEGER REFERENCES colleges(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(role, permission_id, college_id)
+            );
+            
+            -- Drop old userrole type
+            DROP TYPE IF EXISTS userrole CASCADE;
+        ELSE
+            RAISE NOTICE 'role_permissions table already exists with correct type, skipping';
+        END IF;
+    ELSE
+        -- Table doesn't exist, create it
+        CREATE TABLE role_permissions (
+            id SERIAL PRIMARY KEY,
+            role user_role NOT NULL,
+            permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
+            college_id INTEGER REFERENCES colleges(id) ON DELETE CASCADE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(role, permission_id, college_id)
+        );
+        RAISE NOTICE 'Created role_permissions table';
+    END IF;
+END $$;
 
 -- Create user_custom_permissions for user-specific overrides
 CREATE TABLE IF NOT EXISTS user_custom_permissions (
