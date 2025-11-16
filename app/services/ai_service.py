@@ -33,6 +33,14 @@ try:
 except ImportError:
     DOCX_AVAILABLE = False
 
+try:
+    from pdf2image import convert_from_path
+    import pytesseract
+    from PIL import Image
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -164,6 +172,47 @@ class AIService:
         self.embedding_model = "text-embedding-ada-002"
         self.chat_model = "gpt-3.5-turbo"
     
+    def _extract_text_with_ocr(self, file_path: str) -> str:
+        """Extract text from image-based PDF using OCR"""
+        if not OCR_AVAILABLE:
+            raise ImportError("OCR libraries not available. Install pdf2image and pytesseract")
+        
+        try:
+            # Convert PDF pages to images
+            logger.info(f"Converting PDF to images for OCR: {file_path}")
+            images = convert_from_path(file_path, dpi=300)
+            
+            text = ""
+            total_pages = len(images)
+            logger.info(f"Processing {total_pages} pages with OCR")
+            
+            for page_num, image in enumerate(images, start=1):
+                try:
+                    # Perform OCR on the image
+                    logger.info(f"Performing OCR on page {page_num}/{total_pages}")
+                    page_text = pytesseract.image_to_string(image, lang='eng')
+                    
+                    if page_text.strip():
+                        text += f"\n--- Page {page_num} (OCR) ---\n"
+                        text += page_text + "\n"
+                    else:
+                        logger.warning(f"No text extracted from page {page_num}")
+                
+                except Exception as page_error:
+                    logger.error(f"Error performing OCR on page {page_num}: {page_error}")
+                    continue
+            
+            if not text.strip():
+                logger.warning(f"No text extracted via OCR from any page of {file_path}")
+                return f"PDF File: {Path(file_path).name} (OCR completed but no text found)"
+            
+            logger.info(f"OCR extraction completed. Extracted {len(text)} characters from {total_pages} pages")
+            return text
+            
+        except Exception as e:
+            logger.error(f"Error during OCR extraction: {e}", exc_info=True)
+            raise
+    
     def extract_text_from_file(self, file_path: str, mime_type: str) -> str:
         """Extract text content from various file types"""
         try:
@@ -198,14 +247,38 @@ class AIService:
                                 continue
                     
                     if not text.strip():
-                        logger.warning(f"No text extracted from PDF: {file_path}")
-                        return f"PDF File: {Path(file_path).name} (No extractable text - may be scanned/image-based)"
+                        logger.warning(f"No text extracted from PDF using PyPDF2: {file_path}")
+                        
+                        # Try OCR if text extraction failed
+                        if OCR_AVAILABLE:
+                            logger.info(f"Attempting OCR extraction for image-based PDF: {file_path}")
+                            try:
+                                text = self._extract_text_with_ocr(file_path)
+                                if text.strip():
+                                    logger.info(f"Successfully extracted {len(text)} characters using OCR from PDF: {file_path}")
+                                    return text
+                            except Exception as ocr_error:
+                                logger.error(f"OCR extraction failed for {file_path}: {ocr_error}")
+                        
+                        return f"PDF File: {Path(file_path).name} (No extractable text - may be scanned/image-based PDF. OCR {'not available' if not OCR_AVAILABLE else 'failed'})"
                     
                     logger.info(f"Successfully extracted {len(text)} characters from PDF: {file_path}")
                     return text
                     
                 except Exception as pdf_error:
                     logger.error(f"Error reading PDF {file_path}: {pdf_error}")
+                    
+                    # Try OCR as fallback
+                    if OCR_AVAILABLE:
+                        try:
+                            logger.info(f"Attempting OCR extraction as fallback for {file_path}")
+                            text = self._extract_text_with_ocr(file_path)
+                            if text.strip():
+                                logger.info(f"Successfully extracted {len(text)} characters using OCR (fallback) from PDF: {file_path}")
+                                return text
+                        except Exception as ocr_error:
+                            logger.error(f"OCR fallback failed for {file_path}: {ocr_error}")
+                    
                     return f"PDF File: {Path(file_path).name} (Error: {str(pdf_error)})"
             
             # Handle Word documents

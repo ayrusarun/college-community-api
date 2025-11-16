@@ -34,7 +34,7 @@ POST /files/upload
 - `description`: Optional file description
 
 **Supported File Types:**
-- Documents: PDF, DOC, DOCX
+- Documents: PDF, DOC, DOCX (including scanned/image-based PDFs with OCR)
 - Presentations: PPT, PPTX
 - Spreadsheets: XLS, XLSX, CSV
 - Images: JPG, JPEG, PNG, GIF, BMP
@@ -42,6 +42,11 @@ POST /files/upload
 - Audio: MP3, WAV, FLAC, AAC
 - Archives: ZIP, RAR, 7Z, TAR, GZ
 - Text: TXT, MD, JSON, XML
+
+**PDF Processing:**
+- ✅ Text-based PDFs: Direct text extraction (fast)
+- ✅ Image-based PDFs: Automatic OCR extraction (slower)
+- ✅ Scanned documents: Fully supported with Tesseract OCR
 
 **Limits:**
 - Maximum file size: 50MB
@@ -253,20 +258,40 @@ chmod +x test_files.sh
 
 ### 1. Install Dependencies
 ```bash
-pip install aiofiles
+pip install -r requirements.txt
 ```
 
-### 2. Run Database Migration
+### 2. Install OCR System Dependencies (for image-based PDF support)
+```bash
+# Automated installation
+./install_ocr.sh
+
+# Or manual installation:
+# macOS
+brew install tesseract poppler
+
+# Ubuntu/Debian
+sudo apt-get install tesseract-ocr poppler-utils
+```
+
+**Note:** OCR is required for processing scanned/image-based PDFs. See [OCR_SETUP.md](OCR_SETUP.md) for detailed instructions.
+
+### 3. Verify OCR Setup (Optional but Recommended)
+```bash
+./test_ocr.sh
+```
+
+### 4. Run Database Migration
 ```bash
 python migrate_add_files.py
 ```
 
-### 3. Create Upload Directory
+### 5. Create Upload Directory
 ```bash
 mkdir -p uploads
 ```
 
-### 4. Update Environment
+### 6. Update Environment
 Ensure proper permissions for file upload directory:
 ```bash
 chmod 755 uploads
