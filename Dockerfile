@@ -28,19 +28,18 @@ COPY migrate_store.py .
 COPY init_db.py .
 COPY migrations ./migrations
 
-# Performance: Optimized for 4 vCPU machine with burst loads
-# --workers 4: One worker per vCPU core
-# --loop uvloop: High-performance event loop (2-4x faster than asyncio)
-# --limit-concurrency 250: Max 250 concurrent requests per worker (1000 total)
-# --backlog 4096: Doubled queue size for burst handling
-# --timeout-keep-alive 10: Longer connection reuse for better performance
-# --worker-class uvicorn.workers.UvicornWorker: Production-ready worker
+# Performance: Optimized for light-medium load with 2 workers
+# --workers 2: Balanced performance + redundancy
+# --loop uvloop: Keep high-performance event loop
+# --limit-concurrency 150: 300 total concurrent capacity
+# --timeout-keep-alive 30: Longer connection reuse
+# --no-access-log: Reduce I/O overhead
 CMD ["uvicorn", "app.main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
-     "--workers", "4", \
+     "--workers", "2", \
      "--loop", "uvloop", \
-     "--limit-concurrency", "250", \
-     "--backlog", "4096", \
-     "--timeout-keep-alive", "10", \
-     "--log-level", "info"]
+     "--limit-concurrency", "150", \
+     "--timeout-keep-alive", "30", \
+     "--no-access-log", \
+     "--log-level", "error"]
