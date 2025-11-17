@@ -26,6 +26,19 @@ services:
       - ./app:/app/app
       - ./uploads:/app/uploads
       - ./vector_db:/app/vector_db
+    # Resource limits for 4 vCPU machine
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 14G  # Leave 2GB for system
+        reservations:
+          cpus: '3.5'
+          memory: 12G
+    # Performance tuning
+    sysctls:
+      net.core.somaxconn: 4096  # Match backlog size
+      net.ipv4.tcp_keepalive_time: 600
 
 volumes:
   postgres_data:
