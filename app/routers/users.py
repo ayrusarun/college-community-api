@@ -71,6 +71,7 @@ async def get_user(
         )
     
     college = db.query(College).filter(College.id == user.college_id).first()
+    permissions = list(get_user_permissions(user, db))
     
     return UserProfile(
         id=user.id,
@@ -81,8 +82,11 @@ async def get_user(
         class_name=user.class_name,
         academic_year=user.academic_year,
         college_id=user.college_id,
+        role=user.role.value,  # ✅ Add role
+        is_active=user.is_active,  # ✅ Add is_active
         created_at=user.created_at,
         updated_at=user.updated_at,
         college_name=college.name,
-        college_slug=college.slug
+        college_slug=college.slug,
+        permissions=sorted(permissions)  # ✅ Add permissions
     )
