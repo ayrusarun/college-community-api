@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS pool_transactions (
     beneficiary_user_id INTEGER REFERENCES users(id),  -- Who received the points (for DEBIT)
     created_by INTEGER REFERENCES users(id),  -- Who initiated the transaction
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    metadata JSONB  -- Additional data like approval info, etc.
+    meta_data JSONB  -- Additional data like approval info, etc. (renamed from metadata to avoid SQLAlchemy conflict)
 );
 
 -- Indexes for fast queries
@@ -53,14 +53,15 @@ CREATE INDEX IF NOT EXISTS idx_pool_transactions_beneficiary ON pool_transaction
 -- 3. INITIALIZE POOLS FOR EXISTING COLLEGES
 -- =====================================================
 -- Give each existing college an initial allocation of 10,000 points
-INSERT INTO college_reward_pools (college_id, total_balance, reserved_balance, initial_allocation, lifetime_credits, lifetime_debits)
+INSERT INTO college_reward_pools (college_id, total_balance, reserved_balance, initial_allocation, lifetime_credits, lifetime_debits, low_balance_threshold)
 SELECT 
     id as college_id,
     10000 as total_balance,
     0 as reserved_balance,
     10000 as initial_allocation,
     10000 as lifetime_credits,
-    0 as lifetime_debits
+    0 as lifetime_debits,
+    1000 as low_balance_threshold
 FROM colleges
 ON CONFLICT (college_id) DO NOTHING;
 
