@@ -53,13 +53,14 @@ CREATE INDEX IF NOT EXISTS idx_pool_transactions_beneficiary ON pool_transaction
 -- 3. INITIALIZE POOLS FOR EXISTING COLLEGES
 -- =====================================================
 -- Give each existing college an initial allocation of 10,000 points
-INSERT INTO college_reward_pools (college_id, total_balance, reserved_balance, initial_allocation, lifetime_credits)
+INSERT INTO college_reward_pools (college_id, total_balance, reserved_balance, initial_allocation, lifetime_credits, lifetime_debits)
 SELECT 
     id as college_id,
     10000 as total_balance,
     0 as reserved_balance,
     10000 as initial_allocation,
-    10000 as lifetime_credits
+    10000 as lifetime_credits,
+    0 as lifetime_debits
 FROM colleges
 ON CONFLICT (college_id) DO NOTHING;
 
