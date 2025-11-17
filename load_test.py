@@ -21,13 +21,14 @@ stats = defaultdict(lambda: {"success": 0, "failed": 0, "total_time": 0, "respon
 
 async def get_auth_token(session):
     """Login and get JWT token"""
-    login_url = f"{BASE_URL}/login"
-    data = aiohttp.FormData()
-    data.add_field('username', USERNAME)
-    data.add_field('password', PASSWORD)
+    login_url = f"{BASE_URL}/auth/login"
+    login_data = {
+        "username": USERNAME,
+        "password": PASSWORD
+    }
     
     try:
-        async with session.post(login_url, data=data) as response:
+        async with session.post(login_url, json=login_data) as response:
             if response.status == 200:
                 result = await response.json()
                 return result.get("access_token")
@@ -49,13 +50,16 @@ async def fetch_posts(session, token, endpoint_name):
     start = time.time()
     try:
         async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
-            await response.text()
+            text = await response.text()
             elapsed = time.time() - start
             
             if response.status == 200:
                 stats[endpoint_name]["success"] += 1
             else:
                 stats[endpoint_name]["failed"] += 1
+                # Log first few errors to see what's happening
+                if stats[endpoint_name]["failed"] <= 3:
+                    print(f"⚠️  Error {response.status}: {text[:200]}")
             
             stats[endpoint_name]["total_time"] += elapsed
             stats[endpoint_name]["response_times"].append(elapsed)
@@ -64,6 +68,9 @@ async def fetch_posts(session, token, endpoint_name):
         elapsed = time.time() - start
         stats[endpoint_name]["failed"] += 1
         stats[endpoint_name]["total_time"] += elapsed
+        # Log first few exceptions
+        if stats[endpoint_name]["failed"] <= 3:
+            print(f"⚠️  Exception: {str(e)}")
         return f"Error: {str(e)}"
 
 
