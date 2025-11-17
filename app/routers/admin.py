@@ -10,8 +10,9 @@ from pydantic import BaseModel
 from ..core.database import get_db
 from ..core.security import get_current_user, get_password_hash
 from ..core.rbac import RoleChecker, get_user_permissions
-from ..models.models import User, Permission, UserCustomPermission, UserRole, College
+from ..models.models import User, Permission, UserCustomPermission, UserRole, College, RewardPoint, PointTransaction
 from ..models.schemas import UserCreate, UserResponse
+from ..services.reward_pool import reward_pool_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -100,6 +101,27 @@ async def create_user(
     db.commit()
     db.refresh(db_user)
     
+    # 🎉 WELCOME BONUS: Give new user 50 reward points (from college pool)
+    try:
+        result = reward_pool_service.give_reward_from_pool(
+            db=db,
+            college_id=db_user.college_id,
+            user_id=db_user.id,
+            amount=50,
+            reason="welcome_bonus",
+            description="Welcome to MyCampus - Community First Education Platform. Let's collaborate and make our community!",
+            created_by=current_user.id,
+            reference_type="user_registration",
+            reference_id=db_user.id
+        )
+        print(f"✅ Welcome bonus of 50 points credited to user {db_user.username} (from college pool)")
+    except HTTPException as e:
+        # Pool depleted - create user but no welcome bonus
+        print(f"⚠️ Pool depleted: Could not credit welcome bonus for user {db_user.username}: {e.detail}")
+        # Don't fail user creation
+    except Exception as e:
+        print(f"⚠️ Failed to credit welcome bonus for user {db_user.username}: {e}")
+    
     return db_user
 
 
@@ -171,6 +193,20 @@ async def update_user_role(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role. Must be one of: admin, staff, student"
         )
+    
+    # 🔒 Enforce one admin per college
+    if new_role == UserRole.ADMIN:
+        existing_admin = db.query(User).filter(
+            User.college_id == current_user.college_id,
+            User.role == UserRole.ADMIN,
+            User.id != user.id  # Exclude the user being updated
+        ).first()
+        
+        if existing_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"College already has an admin: {existing_admin.full_name} ({existing_admin.username}). Only one admin per college is allowed."
+            )
     
     user.role = new_role
     db.commit()

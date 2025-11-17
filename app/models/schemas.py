@@ -617,3 +617,162 @@ class CategoryResponse(BaseModel):
     category: ProductCategory
     display_name: str
     product_count: int
+
+# ==================== POST ENGAGEMENT SCHEMAS ====================
+
+# Comment Schemas
+class CommentCreate(BaseModel):
+    content: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "content": "Great post! Very helpful information."
+            }
+        }
+
+
+class CommentResponse(BaseModel):
+    id: int
+    post_id: int
+    user_id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+    
+    # User info
+    user_name: str
+    user_department: str
+    time_ago: str
+
+    class Config:
+        from_attributes = True
+
+
+class CommentListResponse(BaseModel):
+    comments: List[CommentResponse]
+    total_count: int
+    page: int
+    page_size: int
+
+
+# Like Schemas
+class LikeResponse(BaseModel):
+    id: int
+    post_id: int
+    user_id: int
+    created_at: datetime
+    
+    # User info
+    user_name: str
+    user_department: str
+
+    class Config:
+        from_attributes = True
+
+
+class LikeListResponse(BaseModel):
+    likes: List[LikeResponse]
+    total_count: int
+    page: int
+    page_size: int
+
+
+class LikeToggleResponse(BaseModel):
+    success: bool
+    action: str  # "liked" or "unliked"
+    like_count: int
+
+
+# Ignite Schemas
+class IgniteResponse(BaseModel):
+    id: int
+    post_id: int
+    giver_id: int
+    receiver_id: int
+    created_at: datetime
+    
+    # User info
+    giver_name: str
+    receiver_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class IgniteToggleResponse(BaseModel):
+    success: bool
+    action: str  # "ignited" or "removed"
+    ignite_count: int
+    points_transferred: int  # 1 or -1
+
+
+class IgniteListResponse(BaseModel):
+    ignites: List[IgniteResponse]
+    total_count: int
+    page: int
+    page_size: int
+
+
+# Enhanced Post Response with Engagement Data
+class PostEngagementResponse(PostResponse):
+    like_count: int
+    comment_count: int
+    ignite_count: int
+    user_has_liked: bool = False
+    user_has_ignited: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== REWARD POOL SCHEMAS ====================
+
+class PoolBalanceResponse(BaseModel):
+    college_id: int
+    college_name: str
+    total_balance: int
+    reserved_balance: int
+    available_balance: int
+    initial_allocation: int
+    lifetime_credits: int
+    lifetime_debits: int
+    low_balance_threshold: int
+    is_low_balance: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PoolTransactionResponse(BaseModel):
+    id: int
+    college_id: int
+    transaction_type: str
+    amount: int
+    balance_before: int
+    balance_after: int
+    reason: str
+    description: Optional[str] = None
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    beneficiary_user_id: Optional[int] = None
+    beneficiary_name: Optional[str] = None
+    created_by: Optional[int] = None
+    creator_name: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PoolCreditRequest(BaseModel):
+    amount: int
+    description: Optional[str] = "Manual pool credit"
+
+
+class PoolAnalyticsResponse(BaseModel):
+    pool_balance: PoolBalanceResponse
+    recent_transactions: List[PoolTransactionResponse]
+    statistics: Dict[str, Any]

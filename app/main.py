@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import engine
 from .models.models import Base
-from .routers import auth, users, posts, rewards, files, ai, alerts, news, store, admin
+from .routers import auth, users, posts, rewards, files, ai, alerts, news, store, admin, engagement, pool
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -34,6 +34,8 @@ app.include_router(alerts.router)
 app.include_router(news.router)
 app.include_router(store.router)
 app.include_router(admin.router)
+app.include_router(engagement.router)  # ✅ New engagement router
+app.include_router(pool.router)  # ✅ Pool management router
 
 
 @app.get("/")

@@ -1,16 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, case
+from sqlalchemy import desc, case, exists
 from typing import List
 from datetime import datetime
 
 from ..core.database import get_db
 from ..core.utils import time_ago
 from ..core.rbac import PermissionChecker, has_permission
-from ..models.models import Post, User, PostType, IndexingTask, Alert
-from ..models.schemas import PostCreate, PostResponse, PostUpdate, PostMetadataUpdate, PostAlertCreate, AlertResponse
+from ..models.models import Post, User, PostType, IndexingTask, Alert, PostLike, PostIgnite, RewardPoint, PointTransaction
+from ..models.schemas import (
+    PostCreate, PostResponse, PostUpdate, PostMetadataUpdate, 
+    PostAlertCreate, AlertResponse, PostEngagementResponse
+)
 from ..routers.auth import get_current_user
 from ..services.moderation import moderation_service
+from ..services.reward_pool import reward_pool_service
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -49,6 +53,26 @@ async def create_post(
     db.add(db_post)
     db.commit()
     db.refresh(db_post)
+    
+    # 🎁 REWARD: Give user 5 points for creating a post (from college pool)
+    try:
+        result = reward_pool_service.give_reward_from_pool(
+            db=db,
+            college_id=current_user.college_id,
+            user_id=current_user.id,
+            amount=5,
+            reason="post_reward",
+            description=f"Created post: {db_post.title[:50]}",
+            created_by=current_user.id,
+            reference_type="post_creation",
+            reference_id=db_post.id
+        )
+        print(f"✅ 5 points credited to {current_user.username} for creating post (from college pool)")
+    except HTTPException as e:
+        # Pool depleted - post created but no reward
+        print(f"⚠️ Pool depleted: Could not credit post creation reward: {e.detail}")
+    except Exception as e:
+        print(f"⚠️ Failed to credit post creation reward: {e}")
     
     # Create indexing task for AI
     try:
@@ -90,7 +114,7 @@ async def create_post(
     )
 
 
-@router.get("/", response_model=List[PostResponse])
+@router.get("/", response_model=List[PostEngagementResponse])
 async def get_posts(
     skip: int = 0,
     limit: int = 50,
@@ -118,10 +142,21 @@ async def get_posts(
         desc(Post.created_at)
     ).offset(skip).limit(limit).all()
     
-    # Convert to response format
+    # Convert to response format with engagement data
     post_responses = []
     for post, author_name, author_department in posts:
-        post_responses.append(PostResponse(
+        # Check if current user has liked/ignited this post
+        user_has_liked = db.query(exists().where(
+            PostLike.post_id == post.id,
+            PostLike.user_id == current_user.id
+        )).scalar()
+        
+        user_has_ignited = db.query(exists().where(
+            PostIgnite.post_id == post.id,
+            PostIgnite.giver_id == current_user.id
+        )).scalar()
+        
+        post_responses.append(PostEngagementResponse(
             id=post.id,
             title=post.title,
             content=post.content,
@@ -134,13 +169,19 @@ async def get_posts(
             updated_at=post.updated_at,
             author_name=author_name,
             author_department=author_department,
-            time_ago=time_ago(post.created_at)
+            time_ago=time_ago(post.created_at),
+            like_count=post.like_count,
+            comment_count=post.comment_count,
+            ignite_count=post.ignite_count,
+            user_has_liked=user_has_liked,
+            user_has_ignited=user_has_ignited
         ))
     
     return post_responses
 
 
-@router.get("/{post_id}", response_model=PostResponse)
+
+@router.get("/{post_id}", response_model=PostEngagementResponse)
 async def get_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
@@ -153,16 +194,27 @@ async def get_post(
         Post.id == post_id,
         Post.college_id == current_user.college_id  # Multi-tenant check
     ).first()
-    
+
     if not post_query:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Post not found"
         )
-    
+
     post, author_name, author_department = post_query
-    
-    return PostResponse(
+
+    # Engagement fields
+    user_has_liked = db.query(exists().where(
+        PostLike.post_id == post.id,
+        PostLike.user_id == current_user.id
+    )).scalar()
+
+    user_has_ignited = db.query(exists().where(
+        PostIgnite.post_id == post.id,
+        PostIgnite.giver_id == current_user.id
+    )).scalar()
+
+    return PostEngagementResponse(
         id=post.id,
         title=post.title,
         content=post.content,
@@ -175,7 +227,12 @@ async def get_post(
         updated_at=post.updated_at,
         author_name=author_name,
         author_department=author_department,
-        time_ago=time_ago(post.created_at)
+        time_ago=time_ago(post.created_at),
+        like_count=post.like_count,
+        comment_count=post.comment_count,
+        ignite_count=post.ignite_count,
+        user_has_liked=user_has_liked,
+        user_has_ignited=user_has_ignited
     )
 
 
@@ -350,32 +407,8 @@ async def update_post_metadata(
     )
 
 
-@router.post("/{post_id}/like")
-async def like_post(
-    post_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    _: None = Depends(PermissionChecker("update:posts"))  # ✅ RBAC Protection
-):
-    post = db.query(Post).filter(
-        Post.id == post_id,
-        Post.college_id == current_user.college_id
-    ).first()
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Post not found"
-        )
-    
-    # Increment likes
-    current_metadata = post.post_metadata or {"likes": 0, "comments": 0, "shares": 0}
-    current_metadata["likes"] = current_metadata.get("likes", 0) + 1
-    post.post_metadata = current_metadata
-    
-    db.commit()
-    
-    return {"message": "Post liked successfully", "likes": current_metadata["likes"]}
+# ❌ REMOVED OLD LIKE ENDPOINT - Now using /posts/{post_id}/like from engagement.py router
+# The new engagement router properly saves likes to the post_likes table
 
 
 @router.post("/{post_id}/alert", response_model=AlertResponse)

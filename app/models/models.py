@@ -89,6 +89,12 @@ class Post(Base):
     image_url = Column(String(500), nullable=True)  # New field for image URL
     post_type = Column(Enum(PostType), default=PostType.GENERAL, nullable=False)
     post_metadata = Column(JSON, default=lambda: {"likes": 0, "comments": 0, "shares": 0}, nullable=False)  # Renamed from metadata
+    
+    # Denormalized counters for performance
+    like_count = Column(Integer, default=0, nullable=False)
+    comment_count = Column(Integer, default=0, nullable=False)
+    ignite_count = Column(Integer, default=0, nullable=False)
+    
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     college_id = Column(Integer, ForeignKey("colleges.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -96,6 +102,9 @@ class Post(Base):
 
     author = relationship("User", back_populates="posts")
     college = relationship("College", back_populates="posts")
+    likes = relationship("PostLike", back_populates="post", cascade="all, delete-orphan")
+    comments = relationship("PostComment", back_populates="post", cascade="all, delete-orphan")
+    ignites = relationship("PostIgnite", back_populates="post", cascade="all, delete-orphan")
 
 
 class RewardPoint(Base):
@@ -463,3 +472,112 @@ class UserCustomPermission(Base):
     __table_args__ = (
         {"extend_existing": True},
     )
+
+# ==================== POST ENGAGEMENT MODELS ====================
+
+class PostLike(Base):
+    __tablename__ = "post_likes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    post = relationship("Post", back_populates="likes")
+    user = relationship("User")
+
+    # Ensure unique combination
+    __table_args__ = (
+        {"extend_existing": True},
+    )
+
+
+class PostComment(Base):
+    __tablename__ = "post_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)  # Max 500 chars enforced in validation
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    post = relationship("Post", back_populates="comments")
+    user = relationship("User")
+
+
+class PostIgnite(Base):
+    __tablename__ = "post_ignites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    giver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    post = relationship("Post", back_populates="ignites")
+    giver = relationship("User", foreign_keys=[giver_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+
+    # Ensure unique combination
+    __table_args__ = (
+        {"extend_existing": True},
+    )
+
+
+# ==================== CENTRALIZED REWARD POOL MODELS ====================
+
+class CollegeRewardPool(Base):
+    __tablename__ = "college_reward_pools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    total_balance = Column(Integer, default=0, nullable=False)
+    reserved_balance = Column(Integer, default=0, nullable=False)
+    # available_balance is computed in DB, we'll calculate it in code
+    initial_allocation = Column(Integer, default=0, nullable=False)
+    lifetime_credits = Column(Integer, default=0, nullable=False)
+    lifetime_debits = Column(Integer, default=0, nullable=False)
+    low_balance_threshold = Column(Integer, default=1000, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    college = relationship("College")
+
+    @property
+    def available_balance(self):
+        """Calculate available balance (total - reserved)"""
+        return self.total_balance - self.reserved_balance
+
+    @property
+    def is_low_balance(self):
+        """Check if pool is running low"""
+        return self.available_balance < self.low_balance_threshold
+
+
+class PoolTransaction(Base):
+    __tablename__ = "pool_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False, index=True)
+    transaction_type = Column(String(50), nullable=False, index=True)  # CREDIT, DEBIT
+    amount = Column(Integer, nullable=False)
+    balance_before = Column(Integer, nullable=False)
+    balance_after = Column(Integer, nullable=False)
+    reason = Column(String(100), nullable=False, index=True)
+    description = Column(Text)
+    reference_type = Column(String(50))
+    reference_id = Column(Integer)
+    beneficiary_user_id = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    meta_data = Column(JSON)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
+
+    # Relationships
+    college = relationship("College")
+    beneficiary = relationship("User", foreign_keys=[beneficiary_user_id])
+    creator = relationship("User", foreign_keys=[created_by])

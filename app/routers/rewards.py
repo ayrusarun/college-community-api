@@ -12,6 +12,7 @@ from ..models.schemas import (
     RewardLeaderboardResponse, RewardSummaryResponse
 )
 from ..routers.auth import get_current_user
+from ..services.reward_pool import reward_pool_service
 
 router = APIRouter(prefix="/rewards", tags=["rewards"])
 
@@ -58,14 +59,34 @@ async def give_reward(
             )
         post_title = post.title
     
-    # Validate points (must be between 1 and 100)
-    if reward.points < 1 or reward.points > 100:
+    # Validate points (must be greater than 0)
+    if reward.points < 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Points must be between 1 and 100"
+            detail="Points must be greater than 0"
         )
     
-    # Create the reward record
+    # 💰 USE COLLEGE POOL: Debit from pool and credit to receiver
+    try:
+        result = reward_pool_service.give_reward_from_pool(
+            db=db,
+            college_id=current_user.college_id,
+            user_id=reward.receiver_id,
+            amount=reward.points,
+            reason="admin_reward",
+            description=f"{reward.title}: {reward.description or ''}",
+            created_by=current_user.id,
+            reference_type="admin_gift",
+            reference_id=None
+        )
+    except HTTPException as e:
+        # Pool depleted
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot give reward: {e.detail}"
+        )
+    
+    # Create the reward record (for tracking/display purposes)
     db_reward = Reward(
         giver_id=current_user.id,
         receiver_id=reward.receiver_id,
@@ -78,23 +99,11 @@ async def give_reward(
     )
     
     db.add(db_reward)
-    
-    # Update or create receiver's reward points
-    receiver_points = db.query(RewardPoint).filter(
-        RewardPoint.user_id == reward.receiver_id
-    ).first()
-    
-    if receiver_points:
-        receiver_points.total_points += reward.points
-    else:
-        receiver_points = RewardPoint(
-            user_id=reward.receiver_id,
-            total_points=reward.points
-        )
-        db.add(receiver_points)
-    
     db.commit()
     db.refresh(db_reward)
+    
+    # Note: Points are already added to receiver by reward_pool_service.give_reward_from_pool()
+    # No need to manually update RewardPoint here
     
     # Return detailed response
     return RewardResponse(
