@@ -141,13 +141,13 @@ SELECT
     c.name as college_name,
     crp.total_balance,
     crp.reserved_balance,
-    crp.available_balance,
+    (crp.total_balance - crp.reserved_balance) as available_balance,
     crp.initial_allocation,
     crp.lifetime_credits,
     crp.lifetime_debits,
     crp.low_balance_threshold,
     CASE 
-        WHEN crp.available_balance < crp.low_balance_threshold THEN true
+        WHEN (crp.total_balance - crp.reserved_balance) < crp.low_balance_threshold THEN true
         ELSE false
     END as is_low_balance,
     (SELECT COUNT(*) FROM pool_transactions WHERE college_id = crp.college_id AND transaction_type = 'CREDIT') as total_credit_transactions,
