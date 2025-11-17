@@ -28,4 +28,16 @@ COPY migrate_store.py .
 COPY init_db.py .
 COPY migrations ./migrations
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Performance: Optimized for burst loads (300-400 req in 2-3s)
+# --workers 2: One per vCPU
+# --limit-concurrency 200: Max 200 concurrent requests per worker
+# --backlog 2048: Queue up to 2048 requests during burst
+# --timeout-keep-alive 5: Reuse connections for 5s
+CMD ["uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "2", \
+     "--limit-concurrency", "200", \
+     "--backlog", "2048", \
+     "--timeout-keep-alive", "5", \
+     "--log-level", "info"]
