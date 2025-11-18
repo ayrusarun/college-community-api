@@ -3,15 +3,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
 
-# Connection pooling configuration for burst loads
+# Conservative connection pooling for 50 RPS with 2 workers
 engine = create_engine(
     settings.database_url,
-    pool_size=20,              # Base pool size (10 per worker)
-    max_overflow=40,           # Allow 40 additional connections during burst
-    pool_timeout=30,           # Wait 30s for connection
-    pool_recycle=3600,         # Recycle connections after 1 hour
-    pool_pre_ping=True,        # Verify connections before use
-    echo=False                 # Disable SQL logging in production
+    pool_size=10,              # 5 per worker (10 total)
+    max_overflow=10,           # Allow 10 additional (20 max total)
+    pool_timeout=10,           # Wait 10s for connection (fail fast)
+    pool_pre_ping=True,        # Verify connections are alive
+    pool_recycle=1800          # Recycle connections after 30 minutes
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

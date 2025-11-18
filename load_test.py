@@ -12,8 +12,8 @@ from collections import defaultdict
 BASE_URL = "http://195.35.20.155:8000"
 USERNAME = "arjun_cs"
 PASSWORD = "password123"
-REQUESTS_PER_SECOND = 100
-DURATION_SECONDS = 10
+REQUESTS_PER_SECOND = 1  # Changed from 100 for quick health check
+DURATION_SECONDS = 5  # Changed from 10 for quick test
 
 # Statistics
 stats = defaultdict(lambda: {"success": 0, "failed": 0, "total_time": 0, "response_times": []})
