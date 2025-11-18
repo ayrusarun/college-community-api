@@ -34,10 +34,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'      # Limit to 3 CPU cores (75% of total)
+          cpus: '2.5'      # Limit to 2.5 CPU cores (62.5% of total)
           memory: 8G       # Limit to 8GB RAM (50% of total)
         reservations:
-          cpus: '2.0'      # Reserve 2 CPU cores
+          cpus: '1.5'      # Reserve 1.5 CPU cores
           memory: 4G       # Reserve 4GB RAM
     restart: unless-stopped
     shm_size: 1gb          # Shared memory for PostgreSQL (increased for better performance)
@@ -60,10 +60,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'      # Limit to 2 CPU cores
+          cpus: '1.5'      # Limit to 1.5 CPU cores
           memory: 4G       # Limit to 4GB RAM (increased for AI/OCR processing)
         reservations:
-          cpus: '1.0'      # Reserve 1 CPU core
+          cpus: '0.5'      # Reserve 0.5 CPU cores
           memory: 2G       # Reserve 2GB RAM
     restart: unless-stopped
 
