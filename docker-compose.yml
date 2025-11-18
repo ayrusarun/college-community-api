@@ -7,10 +7,40 @@ services:
       POSTGRES_DB: college_community
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      # PostgreSQL Performance Configuration
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c effective_cache_size=6GB
+      -c maintenance_work_mem=512MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=32MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=16MB
+      -c min_wal_size=2GB
+      -c max_wal_size=8GB
+      -c max_connections=200
+      -c max_worker_processes=4
+      -c max_parallel_workers_per_gather=2
+      -c max_parallel_workers=4
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Resource limits for Docker - Optimized for 4 vCPU, 16GB RAM
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'      # Limit to 3 CPU cores (75% of total)
+          memory: 8G       # Limit to 8GB RAM (50% of total)
+        reservations:
+          cpus: '2.0'      # Reserve 2 CPU cores
+          memory: 4G       # Reserve 4GB RAM
+    restart: unless-stopped
+    shm_size: 1gb          # Shared memory for PostgreSQL (increased for better performance)
 
   web:
     build: .
@@ -26,6 +56,15 @@ services:
       - ./app:/app/app
       - ./uploads:/app/uploads
       - ./vector_db:/app/vector_db
+    # Resource limits for web application - Optimized for 4 vCPU, 16GB RAM
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Limit to 2 CPU cores
+          memory: 4G       # Limit to 4GB RAM (increased for AI/OCR processing)
+        reservations:
+          cpus: '1.0'      # Reserve 1 CPU core
+          memory: 2G       # Reserve 2GB RAM
     restart: unless-stopped
 
 volumes:
